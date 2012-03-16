@@ -49,8 +49,6 @@ try {
     echo "\n".$e->getMessage()."\n";
 }
 
-exit;
-
 
 // Do a regular query and return JSON
 
