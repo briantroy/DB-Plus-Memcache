@@ -8,6 +8,7 @@ This has been extensively tested against MySQL - Results on other DBs may vary.
 ## Quick Start
 
 Files:
+
 1. dal-conf.php - Contains the configuration the class - used by DB Plus Memcache
 2. dal-class.php - The actual DB Plus Memcache DAL class implementation.
 
@@ -19,6 +20,13 @@ following example connects to the primary DB (as defined in dal-conf.php) and ex
 a simple query caching the result for 30 seconds (see the $myDal->fetchPreparedResult call).
 
 ### Example
+
+    require_once("dal-class.php");
+
+    $myDal = new dal();
+
+    // Turn on debugging...
+    $myDal->doDebug(true);
 
     try {
 
