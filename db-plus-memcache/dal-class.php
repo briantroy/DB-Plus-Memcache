@@ -1,8 +1,4 @@
 <?php
-
-/*
- * $Id: dal-class.php 6507 2012-02-17 18:57:49Z broy $
- */
 	
 // This included file contains the configuraiton information needed to connect to the database.
 require_once("dal-conf.php");
