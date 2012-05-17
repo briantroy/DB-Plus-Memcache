@@ -14,7 +14,7 @@
  * 
  */
 
-    class dalConfig {
+class dalConfig {
 	// Configuration for connecting to MEMCACHE
 	// The following array contains one (or more for Memcache pooling) hostname/port combinations for
 	// Memcache servers. 
@@ -24,7 +24,7 @@
 	// Setting DALUSEMEMC to false will cause the Data Access Layer to never connect to or
 	// attempt to get data from Memcache. This will result in no data cache outside the DB
 	// and probable performance degredation.
-	public static $DALUSEMEMC = true;
+	public static $DALUSEMEMC = false;
 
     /*
      * Log file for debugging/instrumentation.
@@ -61,5 +61,31 @@
 
     );
 
-    }
+    /*
+     * Pluggable persistence classes to add to the DAL
+     */
+    public static $aryPluggables = array(
+        "MongoDB" => array(
+            "objectName" => "plugMdb",
+            "className" => "dalMongo",
+            "classFile" => "dalMongo.php",
+        )
+    );
+
+    /*
+     * MongoDB Connection Configuration
+     */
+    public static $aryMdbConnections = array(
+        "local" => array(
+            "host" => "localhost",
+            "port" => 27017,
+            "useAuth" => true,
+            "username" => "syslogger",
+            "password" => "0okmju7",
+            "db" => "syslogs",
+        )
+    );
+
+
+}
 ?>

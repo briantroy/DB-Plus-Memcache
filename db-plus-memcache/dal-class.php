@@ -48,18 +48,22 @@ require_once("dal-conf.php");
 
         private $aryMemC;
 
+        private $aryPlugable; // Array of plugable persistence classes
+
         private $aryStatement;
 
         private $whichConn;
 
         private $transactionInProgress = false;
 
+        public $plugables; // contains pluggable class objects.
+
         // Return Format Types
         const RETURN_ASSOC = 1;
         const RETURN_JSON = 2;
         const RETURN_XML = 3;
 
-        // Query Types for Prepared Statments
+        // Query Types for Prepared Statements
         const PREPARE_SELECT = 1;
         const PREPARE_INSERT = 2;
         const PREPARE_UPDATE = 3;
@@ -69,6 +73,15 @@ require_once("dal-conf.php");
             if($this->debug) $this->sendToLog("In Constructor...", "DEBUG");
             $this->aryDSN = dalConfig::$aryDalDSNPool;
             $this->aryMemC = dalConfig::$aryDalMemC;
+            $this->aryPlugable = dalConfig::$aryPluggables;
+            $this->loadPlugables();
+        }
+
+        private function loadPlugables() {
+            foreach($this->aryPlugable as $name => $info) {
+                require_once($info['classFile']);
+                $this->plugables[$info['objectName']] = new $info['className'];
+            }
         }
 
 		public function keepAlive() {
@@ -890,4 +903,52 @@ class dalException extends Exception
         parent::__construct($message, $code);
     }
     
+}
+
+/*
+ * Pluggable interface for adding additional persistence solutions
+ * (e.g., MongoDB, Redis, Riak, Cassandra, etc).
+ *
+ * @author: Brian Roy
+ * @date: 5/17/2012
+ *
+ */
+
+Interface pluggableDB {
+
+    /*
+     * Connect to the persistence server.
+     *
+     * @param $connInfo Contains all information needed to make the connection.
+     */
+    public function dbConnect($connInfo);
+
+    /*
+     * Save (create OR update) a set of data.
+     *
+     * @param $saveData Contains all information need to save the data.
+     */
+    public function dbSave($saveData);
+
+    /*
+     * Delete a set of data.
+     *
+     * @param $deleteData Contains all the information needed to delete the data.
+     */
+    public function dbDelete($deleteData);
+
+    /*
+     * Disconnect from the persistence server.
+     *
+     */
+    public function dbDisconnect();
+
+
+    /*
+     * Fetch a set of data.
+     *
+     * @param $findData Contains all information needed to get one or many sets of data.
+     */
+    public function dbGet($findData);
+
 }

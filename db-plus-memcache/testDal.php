@@ -20,6 +20,17 @@ $myDal = new dal();
 $myDal->doDebug(true);
 
 /*
+ * Test MongoDB Pluggable
+ */
+
+$mdbConn = array("connectTo" => "local",
+    "configs" => dalConfig::$aryMdbConnections,
+);
+$myDal->plugables['plugMdb']->dbConnect($mdbConn);
+
+exit();
+
+/*
  * Prepared Statements - perferd method.
  */
 try {
