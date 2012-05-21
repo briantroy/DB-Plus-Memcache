@@ -77,6 +77,11 @@ require_once("dal-conf.php");
             $this->loadPlugables();
         }
 
+        /*
+         * Loads all pluggable persistance modules (classes) found in
+         * dal-conf.php.
+         *
+         */
         private function loadPlugables() {
             foreach($this->aryPlugable as $name => $info) {
                 require_once($info['classFile']);
@@ -84,8 +89,43 @@ require_once("dal-conf.php");
             }
         }
 
+        /*
+         * This method executes the pluggable module's dbGet method
+         * and caches the result.
+         * NOTE: The dbGet method MUST return an associative array or this
+         * will fail and potentially cause bad data in cache.
+         * For Example: A MongoDB cursor will cache but will not contain the
+         * rows that you wanted cached. Subsequent calls will lead to an invalid
+         * result being returned from cache.
+         *
+         * @param $pluggableName String The name of the Pluggable object from dal-conf configuration.
+         * @param $findData The data which contains the information needed by the pluggable's dbGet method.
+         * @param $cacheDurr int The number of seconds to cache the result for.
+         */
+        public function doPluggableFindWithCache($pluggableName, $findData, $cacheDurr) {
+
+            $strCacheKey = var_export($findData,true);
+            $fromCache = $this->getObj(md5($strCacheKey));
+            if($fromCache) {
+                $fromCache['is_from_cache'] = 'true';
+                return $fromCache;
+            }
+
+            // Not in cache... do dbGet...
+            try{
+                $thisObj = $this->plugables[$pluggableName];
+                $result = $thisObj->dbGet($findData);
+            } catch(Exception $e) {
+                throw new dalException(gettype($e)." Exception Thrown in doPluggableFindWithCache - Message: ".$e->getMessage(), array());
+            }
+
+            $ret = $this->cacheObj($result, md5($strCacheKey), $cacheDurr);
+            $result['is_from_cache'] = 'false';
+            return $result;
+        }
+
 		public function keepAlive() {
-			/* 	This function will run an inocuous query 
+			/* 	This function will run an innocuous query
 					to keep the connection from timing out.
 			*/
 			

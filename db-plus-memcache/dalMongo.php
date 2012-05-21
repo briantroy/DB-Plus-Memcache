@@ -16,6 +16,11 @@ class dalMongo implements pluggableDB {
 
     private $db;
 
+    const DOINSERT = 'insert';
+    const DOUPDATE = 'update';
+    const RETURNCURSOR = 'cursor';
+    const RETURNARRAY = 'array';
+
     const DEFAULT_PORT = 27017;
 
     public function dbConnect($connInfo) {
@@ -81,20 +86,165 @@ class dalMongo implements pluggableDB {
         return true;
     }
 
+    /*
+     * Save some data to MongoDB.
+     * $saveData array Format:
+     * 'opts' = options array as defined in: http://www.php.net/manual/en/mongocollection.update.php. Simplest form is array('safe' => true);
+     * 'operation' = insert or update
+     * 'document' = The document data for insert or update.
+     * 'criteria' = The criteria to use to determine which records to update defined in: http://www.php.net/manual/en/mongo.updates.php. Optional - not checked for inserts.
+     * 'collection' = The collection to perform the save (insert/update) on.
+     *
+     * @param $saveData Array The information needed to execute the MongoDB save (update/insert).
+     *
+     * @returns The result of the save (insert/update).
+     * @throws dalMongoException
+     *
+     */
     public function dbSave($saveData) {
+        if(!array_key_exists('operation', $saveData)) throw new dalMongoException("The operation must be specified, valid operations are insert and update.");
+
+        $op = $saveData['operation'];
+        if(!($op == dalMongo::DOINSERT || $op == dalMongo::DOUPDATE))
+            throw new dalMongoException("The supplied operation type: ".$op." is not supported.\n");
+
+        if(!array_key_exists('document', $saveData)) throw new dalMongoException("The document array is required.");
+        if(!array_key_exists('opts', $saveData)) throw new dalMongoException("The opts array is required.");
+        if(!array_key_exists('collection', $saveData)) throw new dalMongoException("The collection name is required.");
+
+        $collection = $this->getMongoCollection($saveData['collection']);
+
+        if($op == dalMongo::DOUPDATE) {
+            if(!array_key_exists('criteria',$saveData)) throw new dalMongoException("The criteria array is required for updates.");
+            try {
+                $result = $collection->update($saveData['criteria'], $saveData['document'], $saveData['opts']);
+            } catch(MongoCursorException $ec) {
+                throw new dalMongoException("MongoCursorException: ".$ec->getMessage());
+            } catch (MongoCursorTimeoutException $ect) {
+                throw new dalMongoException("MongoCursorTimeoutException: ".$ect->getMessage());
+            }
+
+            return $result;
+        }
+
+        if($op == dalMongo::DOINSERT) {
+            try {
+                $result = $collection->update($saveData['criteria'], $saveData['document'], $saveData['opts']);
+            } catch(MongoCursorException $ec) {
+                throw new dalMongoException("MongoCursorException: ".$ec->getMessage());
+            } catch (MongoCursorTimeoutException $ect) {
+                throw new dalMongoException("MongoCursorTimeoutException: ".$ect->getMessage());
+            }
+            return $result;
+        }
+
 
     }
 
+    /*
+     * Delete some data from MongoDB.
+     * $deleteData array Format:
+     * 'opts' = options array as defined in: http://www.php.net/manual/en/mongocollection.remove.php. Simplest form is array('safe' => true);
+     * 'criteria' = The criteria to use to determine which records to delete defined in: http://www.php.net/manual/en/mongocollection.remove.php.
+     * 'collection' = The collection to perform the delete on.
+     *
+     * @param $saveData Array The information needed to execute the MongoDB save (update/insert).
+     * @returns The result of the delete.
+     * @throws dalMongoException
+     */
     public function dbDelete($deleteData) {
 
+        if(!array_key_exists('opts', $deleteData)) throw new dalMongoException("The opts array is required.");
+        if(!array_key_exists('criteria', $deleteData)) throw new dalMongoException("The criteria array is required.");
+        if(!array_key_exists('collection', $deleteData)) throw new dalMongoException("The collection name is required.");
+
+        $collection = $this->getMongoCollection($deleteData['collection']);
+
+        try{
+            $result = $collection->remove($deleteData['criteria'], $deleteData['opts']);
+        } catch(MongoCursorException $ec) {
+            throw new dalMongoException("MongoCursorException: ".$ec->getMessage());
+        } catch (MongoCursorTimeoutException $ect) {
+            throw new dalMongoException("MongoCursorTimeoutException: ".$ect->getMessage());
+        }
+        return $result;
     }
 
+    /*
+     * Disconnect from Mongo
+     * NOTE - this is not **really** needed after Mongo 1.2.0, however, it is provided
+     * to enable specific use cases that may WANT a disconnect.
+     *
+     * @return Boolean The result of the close operation.
+     */
     public function dbDisconnect() {
+        return $this->mdb->close();
+    }
+
+    /*
+     * Do a MongoDB query and return the appropriate results.
+     * $findData array Format:
+     * return_type = cursor or array. If it is cursor it cannot be cached.
+     * collection = The name of the collection on which to query
+     * query = array of query search fields as defined at: http://www.php.net/manual/en/mongocollection.find.php
+     * fields = array of fields to return as defined at: http://www.php.net/manual/en/mongocollection.find.php
+     *
+     * @param $findData Array The information needed to execute (and return) the MongoDB query.
+     *
+     * @returns The result of the query either as a MongoCursor object or an array.
+     * @throws dalMongoException
+     */
+    public function dbGet($findData) {
+        $blnNoFields = false;
+        if(array_key_exists('collection', $findData)) {
+            $collection = $this->getMongoCollection($findData['collection']);
+        } else {
+            throw new dalMongoException("The collection name must be supplied.");
+        }
+
+        if(!array_key_exists('query', $findData)) throw new dalMongoException("The query array must be specified - empty to return all documents in the collection");
+        if(!array_key_exists('fields', $findData)) throw new dalMongoException("The fields array must be specified, if empty all fields will be returned.");
+        if(!array_key_exists('return_type', $findData)) throw new dalMongoException("The return_type must be specified, valid values are 'cursor' or 'array'.");
+
+        if(count($findData['fields']) == 0) $blnNoFields = true;
+
+
+        if($blnNoFields) {
+            $mCurr = $collection->find($findData['query']);
+        } else {
+            $mCurr = $collection->find($findData['query'], $findData['fields']);
+        }
+
+        if($findData['return_type'] == dalMongo::RETURNCURSOR) {
+            return $mCurr;
+        } else if($findData['return_type'] == dalMongo::RETURNARRAY) {
+            return iterator_to_array($mCurr);
+        } else {
+            throw new dalMongoException("The return_type specified (".$findData['return_type']." is not supported. Valid types are 'cursor' and 'array'.");
+        }
 
     }
 
-    public function dbGet($findData) {
+    public function doMapReduce() {
 
+    }
+
+    /*
+     * Private method getMongoCollection gets an MongoCollection object instance
+     * using the supplied collection name.
+     *
+     * @params $collectionName String The name of the collection.
+     *
+     * @returns MongoCollection
+     * @throws dalMongoException
+     */
+    private function getMongoCollection($collectionName) {
+        try {
+            $collection = $this->db->$collectionName;
+            return $collection;
+        } catch (Exception $e){
+            throw new dalMongoException($e->getMessage());
+        }
     }
 
 

@@ -24,7 +24,7 @@ class dalConfig {
 	// Setting DALUSEMEMC to false will cause the Data Access Layer to never connect to or
 	// attempt to get data from Memcache. This will result in no data cache outside the DB
 	// and probable performance degredation.
-	public static $DALUSEMEMC = false;
+	public static $DALUSEMEMC = true;
 
     /*
      * Log file for debugging/instrumentation.

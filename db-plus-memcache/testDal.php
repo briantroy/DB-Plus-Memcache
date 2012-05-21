@@ -27,6 +27,29 @@ $mdbConn = array("connectTo" => "local",
     "configs" => dalConfig::$aryMdbConnections,
 );
 $myDal->plugables['plugMdb']->dbConnect($mdbConn);
+$aryIn = array(
+    'return_type' => 'array',
+    'query' => array('level' => 'error'),
+    'fields' => array(),
+    'collection' => 'zmUpload',
+);
+
+$result = $myDal->plugables['plugMdb']->dbGet($aryIn);
+print_r($result);
+
+echo "\n\n";
+echo "Now with caching...\n";
+
+$result = $myDal->doPluggableFindWithCache('plugMdb', $aryIn, 10);
+
+echo "Did we get it from cache? -> ".$result['is_from_cache']."\n";
+
+echo "\n\n";
+echo "Now it should come FROM cache...\n";
+
+$result = $myDal->doPluggableFindWithCache('plugMdb', $aryIn, 10);
+
+echo "From Cache -> ".$result['is_from_cache']."\n\n";
 
 exit();
 
