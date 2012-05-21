@@ -21,6 +21,10 @@ class dalMongo implements pluggableDB {
     const RETURNCURSOR = 'cursor';
     const RETURNARRAY = 'array';
 
+    const OUTTYPEREPLACE = 'replace';
+    const OUTTYPEMERGE = 'merge';
+    const OUTTYPEREDUCE = 'reduce';
+
     const DEFAULT_PORT = 27017;
 
     public function dbConnect($connInfo) {
@@ -225,7 +229,43 @@ class dalMongo implements pluggableDB {
 
     }
 
-    public function doMapReduce() {
+    /*
+     * Method doMapReduce executes a map reduce on the MongoDB Replica Set (or server).
+     *
+     * See: http://php.net/manual/en/mongodb.command.php
+     *
+     * @todo Test this. It should work as is but I'm not 100% confident.
+     *
+     * @param
+     */
+    public function doMapReduce($mapFunc, $reduceFunc, $inCollection, $outCollection, $finalize = null, $query = null, $outType = dalMongo::OUTTYPEREPLACE) {
+        $tMap = new MongoCode($mapFunc);
+        $tReduce = new MongoCode($reduceFunc);
+        if(!is_null($finalize)) $tFinalize = new MongoCode($finalize);
+
+        if($outType !== dalMongo::OUTTYPEREPLACE) {
+            $outAry = array($outType => $outCollection);
+        } else {
+            $outAry = $outCollection;
+        }
+
+        // Build the Command Array
+
+        $aryCmd = array(
+            'mapreduce' => $inCollection,
+            'map' => $tMap,
+            'reduce' => $tReduce,
+            'out' => $outAry,
+        );
+
+        if(!is_null($query)) $aryCmd['query'] = $query;
+        if(!is_null($finalize)) $aryCmd['finalize'] = $tFinalize;
+
+        // Now run it.
+
+        $mrResult = $this->mdb->command($aryCmd);
+        return $mrResult;
+
 
     }
 
