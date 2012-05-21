@@ -26,7 +26,7 @@ $myDal->doDebug(true);
 $mdbConn = array("connectTo" => "local",
     "configs" => dalConfig::$aryMdbConnections,
 );
-$myDal->plugables['plugMdb']->dbConnect($mdbConn);
+$myDal->plugables['plugMdb']->setConnectInfo($mdbConn);
 $aryIn = array(
     'return_type' => 'array',
     'query' => array('level' => 'error'),

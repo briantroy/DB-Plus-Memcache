@@ -113,7 +113,7 @@ require_once("dal-conf.php");
 
             // It wasn't in cache... so first we need to make sure we are still connected to the DB.
             if(!$this->plugables[$pluggableName]->isConnected())
-                throw new dalException("The pluggable: ".$pluggableName." is not connected to the DB.", array());
+                $this->plugables[$pluggableName]->dbConnect();
 
             // Not in cache, and we have a connection... do dbGet...
             try{
@@ -961,11 +961,23 @@ class dalException extends Exception
 Interface pluggableDB {
 
     /*
+     * Sets the connection information to be used internally on dbConnect.
+     *
+     * We do this so connections can only be processed AS NEEDED (i.e.,
+     * when the DAL doesn't find the needed data in Memcache).
+     *
+     * Also, internally, the pluggable class can defer connection until it is needed
+     * and not simply sit with an open connection waiting for a CRUD operation to be
+     * called.
+     *
+     */
+    public function setConnectInfo($connInfo);
+
+    /*
      * Connect to the persistence server.
      *
-     * @param $connInfo Contains all information needed to make the connection.
      */
-    public function dbConnect($connInfo);
+    public function dbConnect();
 
     /*
      * Determine if the connection has been made.

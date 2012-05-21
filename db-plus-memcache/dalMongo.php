@@ -10,7 +10,8 @@
  */
 class dalMongo implements pluggableDB {
 
-    private $myConfig;
+    private $connectInfo;
+    private $myConfig = null;
 
     private $mdb = null;
 
@@ -28,28 +29,42 @@ class dalMongo implements pluggableDB {
     const DEFAULT_PORT = 27017;
 
     /*
+     * Sets the connection data that will be used to connect to the DB
+     *
+     * @param $connData The data needed to connect to the DB.
+     *
+     */
+    public function setConnectInfo($connData) {
+        $this->connectInfo = $connData;
+        if(array_key_exists("connectTo", $connData) && array_key_exists("configs", $connData)) {
+            $connKey = $connData['connectTo'];
+            $config = $connData['configs'];
+            if(!array_key_exists($connKey, $config)) {
+                throw new dalMongoException("Invalid Configuration, the connection: ".$connKey." is not defined.");
+            }
+        } else {
+            throw new dalMongoException("Invalid Connection Information supplied in setConnectionInfo.");
+        }
+
+        $this->myConfig = $config[$connKey];
+
+        return true;
+    }
+
+    /*
      * Method isConnected returns the current state of the db connection
      *
      * @return boolean True if connected, false if not.
      */
     public function isConnected() {
-        if(is_null($mdb)) return false;
+        if(is_null($this->mdb)) return false;
         return true;
     }
 
-    public function dbConnect($connInfo) {
-        if(array_key_exists("connectTo", $connInfo) && array_key_exists("configs", $connInfo)) {
-            $connKey = $connInfo['connectTo'];
-            $config = $connInfo['configs'];
-            if(!array_key_exists($connKey, $config)) {
-                throw new dalMongoException("Invalid Configuration, the connection: ".$connKey." is not defined.");
-            }
-        } else {
-            throw new dalMongoException("Invalid Connection Information supplied in dbConnect.");
-        }
-
-        $this->myConfig = $config[$connKey];
-
+    public function dbConnect() {
+        // Make sure we have configuration
+        if(is_null($this->myConfig))
+            throw new dalMongoException("No connection information has been supplied. Call setConnectInfo first.");
         // Set up the connection
 
         if(!array_key_exists("useAuth", $this->myConfig))
@@ -116,6 +131,10 @@ class dalMongo implements pluggableDB {
      *
      */
     public function dbSave($saveData) {
+
+        // Connect if needed
+        if(!$this->isConnected()) $this->dbConnect();
+
         if(!array_key_exists('operation', $saveData)) throw new dalMongoException("The operation must be specified, valid operations are insert and update.");
 
         $op = $saveData['operation'];
@@ -172,6 +191,9 @@ class dalMongo implements pluggableDB {
         if(!array_key_exists('criteria', $deleteData)) throw new dalMongoException("The criteria array is required.");
         if(!array_key_exists('collection', $deleteData)) throw new dalMongoException("The collection name is required.");
 
+        // Connect if needed
+        if(!$this->isConnected()) $this->dbConnect();
+
         $collection = $this->getMongoCollection($deleteData['collection']);
 
         try{
@@ -211,7 +233,12 @@ class dalMongo implements pluggableDB {
      * @throws dalMongoException
      */
     public function dbGet($findData) {
+
         $blnNoFields = false;
+
+        // Connect if needed
+        if(!$this->isConnected()) $this->dbConnect();
+
         if(array_key_exists('collection', $findData)) {
             $collection = $this->getMongoCollection($findData['collection']);
         } else {
@@ -251,6 +278,9 @@ class dalMongo implements pluggableDB {
      * @param
      */
     public function doMapReduce($mapFunc, $reduceFunc, $inCollection, $outCollection, $finalize = null, $query = null, $outType = dalMongo::OUTTYPEREPLACE) {
+        // Connect if needed
+        if(!$this->isConnected()) $this->dbConnect();
+
         $tMap = new MongoCode($mapFunc);
         $tReduce = new MongoCode($reduceFunc);
         if(!is_null($finalize)) $tFinalize = new MongoCode($finalize);
