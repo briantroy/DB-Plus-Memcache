@@ -12,7 +12,7 @@ class dalMongo implements pluggableDB {
 
     private $myConfig;
 
-    private $mdb;
+    private $mdb = null;
 
     private $db;
 
@@ -26,6 +26,16 @@ class dalMongo implements pluggableDB {
     const OUTTYPEREDUCE = 'reduce';
 
     const DEFAULT_PORT = 27017;
+
+    /*
+     * Method isConnected returns the current state of the db connection
+     *
+     * @return boolean True if connected, false if not.
+     */
+    public function isConnected() {
+        if(is_null($mdb)) return false;
+        return true;
+    }
 
     public function dbConnect($connInfo) {
         if(array_key_exists("connectTo", $connInfo) && array_key_exists("configs", $connInfo)) {
@@ -182,7 +192,9 @@ class dalMongo implements pluggableDB {
      * @return Boolean The result of the close operation.
      */
     public function dbDisconnect() {
-        return $this->mdb->close();
+        $ret = $this->mdb->close();
+        $this->mdb = null;
+        return $ret;
     }
 
     /*

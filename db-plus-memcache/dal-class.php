@@ -111,7 +111,11 @@ require_once("dal-conf.php");
                 return $fromCache;
             }
 
-            // Not in cache... do dbGet...
+            // It wasn't in cache... so first we need to make sure we are still connected to the DB.
+            if(!$this->plugables[$pluggableName]->isConnected())
+                throw new dalException("The pluggable: ".$pluggableName." is not connected to the DB.", array());
+
+            // Not in cache, and we have a connection... do dbGet...
             try{
                 $thisObj = $this->plugables[$pluggableName];
                 $result = $thisObj->dbGet($findData);
@@ -962,6 +966,15 @@ Interface pluggableDB {
      * @param $connInfo Contains all information needed to make the connection.
      */
     public function dbConnect($connInfo);
+
+    /*
+     * Determine if the connection has been made.
+     * This is utilized internally in the DAL to auto-connect when doing
+     * doPluggableFindWithCache calls.
+     *
+     */
+    public function isConnected();
+
 
     /*
      * Save (create OR update) a set of data.
