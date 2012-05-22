@@ -80,9 +80,9 @@ class dalConfig {
             "host" => "localhost",
             "port" => 27017,
             "useAuth" => true,
-            "username" => "syslogger",
-            "password" => "0okmju7",
-            "db" => "syslogs",
+            "username" => "myuser",
+            "password" => "mypass",
+            "db" => "mymongodb",
         )
     );
 
