@@ -27,34 +27,148 @@ $mdbConn = array("connectTo" => "local",
     "configs" => dalConfig::$aryMdbConnections,
 );
 $myDal->plugables['plugMdb']->setConnectInfo($mdbConn);
+
+echo "Insert Test\n";
+
+$aryInsert = array(
+    "x" => 12,
+    "name" => "Luke Skywalker",
+    "role" => "Yoda",
+    "now" => time(),
+);
+
+$aryInsOp = array(
+    'operation' => 'insert',
+    'document' => $aryInsert,
+    'collection' => 'zmUpload',
+    'opts' => array("safe" => true),
+);
+
+$result = $myDal->plugables['plugMdb']->dbSave($aryInsOp);
+
+echo "Insert Result:\n";
+print_r($result);
+echo "Resulting ID: \n";
+print_r($aryInsert);
+echo "\n".$aryInsert['_id']."\n";
+$myId = $aryInsert['_id'];
+
+echo "Now look it up using doPluggableFindwithCache:\n";
+
 $aryIn = array(
     'return_type' => 'array',
-    'query' => array('level' => 'error'),
+    'query' => array('_id' => $myId),
     'fields' => array(),
     'collection' => 'zmUpload',
 );
 
+$result = $myDal->doPluggableFindWithCache('plugMdb', $aryIn, 10);
+
+print_r($result);
+echo "\n\n";
+
+echo "Now Update it...\n";
+
+$aryUpdOp = array(
+    'operation' => 'update',
+    'document' => array('$set' => array('role' => 'Bounty Hunter', 'updated' => time())),
+    'criteria' => array('_id' => $myId),
+    'collection' => 'zmUpload',
+    'opts' => array("safe" => true),
+);
+
+$result = $myDal->plugables['plugMdb']->dbSave($aryUpdOp);
+
+print_r($result);
+
+echo "\nNow grab it from cache to show that cache is working...\n";
+
+$result = $myDal->doPluggableFindWithCache('plugMdb', $aryIn, 10);
+
+print_r($result);
+echo "\n\n";
+
+echo "Sleeping to let cache expire...\n";
+
+sleep(10);
+
+echo "Now look it up one more time to be sure...\n";
+$aryIn = array(
+    'return_type' => 'array',
+    'query' => array('_id' => $myId),
+    'fields' => array(),
+    'collection' => 'zmUpload',
+);
+
+$result = $myDal->doPluggableFindWithCache('plugMdb', $aryIn, 10);
+
+print_r($result);
+
+echo "\n\nIf Luke is a bounty hunter the MongoDB Pluggable is working perfectly...\n\n\n";
+
+echo "Now, let's try a delete...\n";
+
+$aryDelOp = array(
+    'criteria' => array('_id' => $myId),
+    'collection' => 'zmUpload',
+    'opts' => array("safe" => true),
+);
+
+$result = $myDal->plugables['plugMdb']->dbDelete($aryDelOp);
+
+print_r($result);
+echo "\n\n";
+
+echo "Now try to fetch it with dbGet (skipping cache) and make sure it is gone...\n";
+
 $result = $myDal->plugables['plugMdb']->dbGet($aryIn);
+
 print_r($result);
 
 echo "\n\n";
-echo "Now with caching...\n";
 
-$result = $myDal->doPluggableFindWithCache('plugMdb', $aryIn, 10);
+echo "If it is gone the force is with you today... if not, well, the DAL pluggable MongoDB class isn't working right...\n";
 
-echo "Did we get it from cache? -> ".$result['is_from_cache']."\n";
+echo "\n\nMap Reduce Test...\n\n";
 
-echo "\n\n";
-echo "Now it should come FROM cache...\n";
+$myMap = "function() {
+    emit(this.role, {count:1});
+}";
 
-$result = $myDal->doPluggableFindWithCache('plugMdb', $aryIn, 10);
+$myReduce = "function(key, values) {
+    var result = {count:1};
 
-echo "From Cache -> ".$result['is_from_cache']."\n\n";
+    values.forEach(function(value) {
+        result.count += value.count;
+
+    });
+    return result;
+}";
+
+$result = $myDal->plugables['plugMdb']->doMapReduce($myMap, $myReduce, 'zmUpload', 'zmMapReduceTest', null, array('x' => 12), dalMongo::OUTTYPEREPLACE);
+
+print_r($result);
+echo "\n\nIf there are no errors... the Map Reduce worked...\n";
+
+echo "\nGet the output collection of the Map Reduce Test\n\n";
+
+$aryIn = array(
+    'return_type' => 'array',
+    'query' => array(),
+    'fields' => array(),
+    'collection' => 'zmMapReduceTest',
+);
+
+$result = $myDal->doPluggableFindWithCache('plugMdb', $aryIn, 2);
+
+print_r($result);
+
+echo "\n\nTests Complete\n\n";
 
 exit();
 
 /*
- * Prepared Statements - perferd method.
+ * Prepared Statements - preferred method.
  */
 try {
     

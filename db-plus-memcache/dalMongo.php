@@ -162,7 +162,7 @@ class dalMongo implements pluggableDB {
 
         if($op == dalMongo::DOINSERT) {
             try {
-                $result = $collection->update($saveData['criteria'], $saveData['document'], $saveData['opts']);
+                $result = $collection->insert($saveData['document'], $saveData['opts']);
             } catch(MongoCursorException $ec) {
                 throw new dalMongoException("MongoCursorException: ".$ec->getMessage());
             } catch (MongoCursorTimeoutException $ect) {
@@ -305,7 +305,7 @@ class dalMongo implements pluggableDB {
 
         // Now run it.
 
-        $mrResult = $this->mdb->command($aryCmd);
+        $mrResult = $this->db->command($aryCmd);
         return $mrResult;
 
 
