@@ -68,7 +68,7 @@ class dalConfig {
         "MongoDB" => array(
             "objectName" => "plugMdb",
             "className" => "dalMongo",
-            "classFile" => "dalMongo.php",
+            "classFile" => "pluggables/dalMongo.php",
         )
     );
 
