@@ -1,9 +1,11 @@
 # DB-Plus-Memcache
 
-DB Plus Memcache is a RDBMS (via PHP PDO) independent PHP Data Access Layer class that makes is easy
+DB Plus Memcache is a DB independent PHP Data Access Layer class that makes is easy
 (really, really easy) to build your PHP applications with Memcache support by default.
 
-This has been extensively tested against MySQL - Results on other DBs may vary.
+Supporting both NoSQL (via pluggable persistance classes) and all major RDBMS (via PHP PDO).
+
+This has been extensively tested against MySQL and MongoDB - Results on other DBs may vary.
 
 ## What's New In Version 1.2
 
