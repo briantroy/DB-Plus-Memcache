@@ -304,8 +304,8 @@ class dalMongo implements pluggableDB {
         if(!is_null($finalize)) $aryCmd['finalize'] = $tFinalize;
 
         // Now run it.
-
-        $mrResult = $this->db->command($aryCmd);
+        $aryOpts = array("timeout" => -1);
+        $mrResult = $this->db->command($aryCmd, $aryOpts);
         return $mrResult;
 
 
