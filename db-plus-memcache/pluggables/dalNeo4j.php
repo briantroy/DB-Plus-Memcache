@@ -139,8 +139,25 @@ class dalNeo4j implements pluggableDB
 
             if(!is_null($saveData['node_index_data'])) {
                 // Add the index...
-
+                if($res['result'] == 201) {
+                    // Good Save... get the resource URL
+                    $uri = $res['headers']['Location'];
+                } else {
+                    throw new dalNeo4jException("Node Creation failed: ".$res['response_body']);
+                }
+                // Create the index...
+                try{
+                    $resp = $this->makeNeo4jIndex($uri, $saveData['node_index_data']['index_name'], $saveData['node_index_data']['key'],$saveData['node_index_data']['value']);
+                } catch (dalNeo4jException $e) {
+                    throw $e;
+                }
             }
+            // build the return...
+            $aryRet = array(
+                "result" => "success",
+                "node_uri" => $uri,
+            );
+            return $aryRet;
         }
 
 
@@ -173,7 +190,29 @@ class dalNeo4j implements pluggableDB
 
     }
 
+    /*
+     * Create an index on a Node.
+     *
+     * @param $targetURI String The URI for the node.
+     * @param $index String The index name
+     * @param $key String The index key
+     * @param $value Mixed The index value
+     */
     private function makeNeo4jIndex($targetURI, $index, $key, $value) {
+
+        $urlAdd = "index/node/".$index;
+
+        $aryParams = array(
+            "to" => $targetURI,
+            "key" => $key,
+            "value" => $value,
+        );
+
+        $ret = $this->doCurlTransaction($aryParams, $urlAdd, dalNeo4j::HTTPPOST);
+
+        if($ret['result'] == 201) return true;
+
+        throw new dalNeo4jException("Index creation failed: ".$ret['response_body']);
 
     }
 
