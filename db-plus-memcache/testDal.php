@@ -20,6 +20,24 @@ $myDal = new dal();
 $myDal->doDebug(true);
 
 /*
+ * Test Neo4j Pluggable
+ */
+
+$neoConnInfo = array(
+    "hostname" => "localhost",
+    "port" => 7474,
+    "protocol" => "http",
+    "baseurl" => "/db/data/",
+    "do_connection_test" => true,
+);
+
+$ret = $myDal->plugables['plugNeo4j']->setConnectInfo($neoConnInfo);
+print_r($ret);
+exit();
+
+
+
+/*
  * Test MongoDB Pluggable
  */
 
@@ -43,6 +61,8 @@ $aryInsOp = array(
     'collection' => 'zmUpload',
     'opts' => array("safe" => true),
 );
+
+echo "Saving...\n";
 
 $result = $myDal->plugables['plugMdb']->dbSave($aryInsOp);
 

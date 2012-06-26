@@ -31,8 +31,8 @@ class dalConfig {
      * You can always point these to /dev/null to make them silent - not reccomended.
      */
 
-	public static $DALLOG = "/Users/brian.roy/Documents/Development/logs/dallog.log";
-    public static $DALEXCEPTIONLOG = "/Volumes/Workspace/Unicon/logs/dal_exceptions.log";
+	public static $DALLOG = "/Users/brian/Development/logs/dallog.log";
+    public static $DALEXCEPTIONLOG = "/Users/brian/Development/logs/dal_exceptions.log";
 
 	// Configuraiton for DB Connections
 	// We are using PDO NOT database specific drivers. Please see the PHP PDO manual for the
@@ -69,7 +69,12 @@ class dalConfig {
             "objectName" => "plugMdb",
             "className" => "dalMongo",
             "classFile" => "pluggables/dalMongo.php",
-        )
+        ),
+        "Neo4j" => array(
+            "objectName" => "plugNeo4j",
+            "className" => "dalNeo4j",
+            "classFile" => "pluggables/dalNeo4j.php",
+        ),
     );
 
     /*
@@ -79,7 +84,7 @@ class dalConfig {
         "local" => array(
             "host" => "localhost",
             "port" => 27017,
-            "useAuth" => true,
+            "useAuth" => false,
             "username" => "myuser",
             "password" => "mypass",
             "db" => "mymongodb",
