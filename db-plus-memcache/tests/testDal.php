@@ -10,7 +10,7 @@
  *
  */
 
-require_once("dal-class.php");
+require_once("../dal-class.php");
 
 $myDal = new dal();
 
@@ -32,7 +32,9 @@ $neoConnInfo = array(
 );
 
 $ret = $myDal->plugables['plugNeo4j']->setConnectInfo($neoConnInfo);
+
 print_r($ret);
+
 exit();
 
 

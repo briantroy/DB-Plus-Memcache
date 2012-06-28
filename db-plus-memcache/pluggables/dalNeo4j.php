@@ -147,8 +147,8 @@ class dalNeo4j implements pluggableDB
          */
 
         foreach($this->arySaveMandatory as $key => $value) {
-            if(!in_array($key, $saveData)) {
-                throw new dalNeo4jException("The required dbSave info: ".$key." was not found.");
+            if(!array_key_exists($value, $saveData)) {
+                throw new dalNeo4jException("The required dbSave info: ".$value." was not found.");
             }
         }
         /*
@@ -183,7 +183,7 @@ class dalNeo4j implements pluggableDB
          * Setting a single property of a node. All other properties remain and are unchanged.
          *
          */
-        if($saveData['what'] == dalNeo4j::NEONODE && $saveData['operation' == dalNeo4j::NEOOPSETPROP]) {
+        if($saveData['what'] == dalNeo4j::NEONODE && $saveData['operation'] == dalNeo4j::NEOOPSETPROP) {
             try{
                 $ret = $this->setNeo4jNodeProperty($saveData);
             } catch(dalNeo4jException $e) {
@@ -253,8 +253,8 @@ class dalNeo4j implements pluggableDB
          */
 
         foreach($this->aryDeleteMandatory as $key => $value) {
-            if(!in_array($key, $deleteData)) {
-                throw new dalNeo4jException("The required dbDelete info: ".$key." was not found.");
+            if(!array_key_exists($value, $deleteData)) {
+                throw new dalNeo4jException("The required dbDelete info: ".$value." was not found.");
             }
         }
 
@@ -353,8 +353,8 @@ class dalNeo4j implements pluggableDB
          *
          */
         foreach($this->aryGetMandatory as $key => $value) {
-            if(!in_array($key, $findData)) {
-                throw new dalNeo4jException("The required dbGet info: ".$key." was not found.");
+            if(!array_key_exists($value, $findData)) {
+                throw new dalNeo4jException("The required dbGet info: ".$value." was not found.");
             }
         }
 
@@ -740,6 +740,13 @@ class dalNeo4j implements pluggableDB
      * @param Mixed $saveData The data supplied to dbSave.
      */
     private function addNeo4jRelationship($saveData) {
+        /*
+         * Since all Neo4j relationships are directional, the
+         * oid is the SOURCE (from) and the target_uri is the
+         * DESTINATION (to).
+         */
+
+
         $uriPart = "node/".$saveData['oid']."/relationships";
         $aryDat = array(
             "to" => $saveData['relationship_data']['target_uri'],
@@ -798,6 +805,7 @@ class dalNeo4j implements pluggableDB
     private function makeNeo4jNode($saveData) {
         $path = "node";
         if(!is_null($saveData['props'])) {
+
             $vars = $saveData['props'];
         } else {
             $vars = array();
@@ -808,15 +816,16 @@ class dalNeo4j implements pluggableDB
         /*
         * Check $res for success...
         */
+
+        if($res['result'] == 201) {
+            // Good Save... get the resource URL
+            $uri = trim($res['headers']['Location']);
+        } else {
+            throw new dalNeo4jException("Node Creation failed: ".$res['response_body']);
+        }
+
         $index_info = array();
         if(!is_null($saveData['node_index_data'])) {
-            // Add the index...
-            if($res['result'] == 201) {
-                // Good Save... get the resource URL
-                $uri = $res['headers']['Location'];
-            } else {
-                throw new dalNeo4jException("Node Creation failed: ".$res['response_body']);
-            }
             // Create the index...
             try{
                 foreach($saveData['node_index_data'] as $idx) {
@@ -857,19 +866,21 @@ class dalNeo4j implements pluggableDB
      */
     private function makeNeo4jIndex($targetURI, $index, $key, $value) {
 
-        $urlAdd = "index/node/".$index;
+        $urlAdd = "index/node/".urlencode($index);
 
         $aryParams = array(
-            "to" => $targetURI,
+            "uri" => $targetURI,
             "key" => $key,
             "value" => $value,
         );
 
         $ret = $this->doCurlTransaction($aryParams, $urlAdd, dalNeo4j::HTTPPOST);
 
-        if($ret['result'] == 201) return true;
-
-        throw new dalNeo4jException("Index creation failed: ".$ret['response_body']);
+        if($ret['result'] == 201) {
+            return true;
+        } else {
+            throw new dalNeo4jException("Index creation failed: ".var_export($ret, true));
+        }
 
     }
 
@@ -903,37 +914,83 @@ class dalNeo4j implements pluggableDB
      */
     private function doCurlTransaction($aryVars, $urlEnd, $type = dalNeo4j::HTTPGET, $content_type = dalNeo4j::CONTENTTYPEJSON, $accept_type = dalNeo4j::ACCEPTJSON) {
 
+        /*
+         * Trying via socket.
+         */
+        /*
+        if($type == dalNeo4j::HTTPPUT || $type == dalNeo4j::HTTPPOST || $type == dalNeo4j::HTTPDELETE) {
+            $aryGet = array();
+            $aryPost = $aryVars;
+        } else {
+            $aryGet = $aryVars;
+            $aryPost = array();
+        }
+
+        $res = $this->http_request($type, $this->n4jconfig['hostname'].":7474",
+                        $this->n4jconfig['port'], $this->n4jconfig['baseurl'].$urlEnd,
+                        $aryGet, $aryPost, array(), array("Content-Type" => 'application/json', "Accept" => "application/json"),
+                        10, false, true
+        );
+        if($res === false) echo "Error on stream...\n";
+        if($res === "") echo "Empty response from Neo4j?\n";
+        echo $res."\n\n";
+
+        $decodeReturn = $this->parseHeadersFromJSON($res);
+        //print_r($decodeReturn);
+
+        if($decodeReturn["http_code"] >= 200 && $decodeReturn["http_code"] < 300) {
+            return array("result" => $decodeReturn["http_code"], "curl_info" => array(), "response_body" => $decodeReturn['JSON'], "headers" => $decodeReturn['headers']);
+        } else {
+            return array("result" => $decodeReturn["http_code"], "response_body" => $decodeReturn['JSON'], "headers" => $decodeReturn['headers']);
+        }
+
+        */
+        /* below here off if the above section is not commented out */
+
+
         /* Create the full URL */
         $reqUrl = $this->n4jconfig['protocol']."://".$this->n4jconfig['hostname'].":".$this->n4jconfig['port'].$this->n4jconfig['baseurl'].$urlEnd;
-
+        $aryHeaders = Array("Content-Type: application/json", "Accept: application/json");
         $curlOpts = array(
             CURLOPT_URL => $reqUrl,
-            CURLOPT_FOLLOWLOCATION => true,
+            // CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HEADER => true,
-            CURLINFO_HEADER_OUT => true
+            // CURLINFO_HEADER_OUT => true,
         );
 
         switch($type) {
             case dalNeo4j::HTTPDELETE:
                 $curlOpts[CURLOPT_CUSTOMREQUEST] = dalNeo4j::HTTPDELETE;
+                $curlOpts[CURLOPT_HTTPHEADER] = $aryHeaders;
                 break;
             case dalNeo4j::HTTPGET:
-                $curlOpts[CURLOPT_HTTPGET] = true;
+                $curlOpts[CURLOPT_CUSTOMREQUEST] = dalNeo4j::HTTPGET;
                 $curlOpts[CURLOPT_URL] .= "?".http_build_query($aryVars);
+                $curlOpts[CURLOPT_HTTPHEADER] = $aryHeaders;
                 break;
             case dalNeo4j::HTTPPOST:
+                $curlOpts[CURLOPT_CUSTOMREQUEST] = dalNeo4j::HTTPPOST;
                 $curlOpts[CURLOPT_POST] = true;
-                $curlOpts[CURLOPT_POSTFIELDS] = $aryVars;
+                $varsStr = $this->encodeData($aryVars);
+                $curlOpts[CURLOPT_POSTFIELDS] = $varsStr;
+                $aryHeaders[] = 'Content-Length: '.strlen($varsStr);
+                $curlOpts[CURLOPT_HTTPHEADER] = $aryHeaders;
                 break;
             case dalNeo4j::HTTPPUT:
-                $curlOpts[CURLOPT_PUT] = true;
-                $curlOpts[CURLOPT_POSTFIELDS] = http_build_query($aryVars);
+                $curlOpts[CURLOPT_CUSTOMREQUEST] = dalNeo4j::HTTPPUT;
+                $varsStr = $this->encodeData($aryVars);
+                $curlOpts[CURLOPT_POSTFIELDS] = $varsStr;
+                $aryHeaders[] = 'Content-Length: '.strlen($varsStr);
+                $curlOpts[CURLOPT_HTTPHEADER] = $aryHeaders;
                 break;
             default:
                 throw new dalNeo4jException("Invalid HTTP Request Type: ".$type);
         }
 
+
+        print_r($curlOpts);
+        echo "\n\n";
         $ch = curl_init();
         curl_setopt_array($ch, $curlOpts);
 
@@ -951,6 +1008,34 @@ class dalNeo4j implements pluggableDB
 
     }
 
+    /**
+     * Encode data for transport
+     *
+     * @param mixed $data
+     * @return string
+     */
+    public function encodeData($data)
+    {
+        $encoded = '';
+        if (!is_scalar($data)) {
+            if ($data) {
+                $keys = array_keys($data);
+                $nonNumeric = array_filter($keys, function ($var){
+                    return !is_int($var);
+                });
+                if ($nonNumeric) {
+                    $data = (object)$data;
+                }
+            } else {
+                $data = (object)$data;
+            }
+        }
+
+        $encoded = json_encode($data);
+        return $encoded;
+    }
+
+
     /*
      * Parses the headers in teh CuRL output from the JSON body return.
      *
@@ -963,13 +1048,16 @@ class dalNeo4j implements pluggableDB
         $aryParts = explode("\n", $curlout);
         $restIsJson = false;
         $jsonStr = "";
+        $httpCode = 0;
         $aryHeaders = array();
         foreach($aryParts as $part) {
             $part = trim($part);
             if(!$restIsJson) {
                 if($part == "" && $restIsJson == false) {
                 } else if((substr($part, 0, 4) === "HTTP")) {
-                } else if($part == "{") {
+                    $httpCodeParts = explode(" ", $part);
+                    $httpCode = $httpCodeParts[1];
+                } else if($part == "{" || $part == "<html>") {
                     $restIsJson = true;
                 } else {
                     $arySplitHeader = explode(":", $part, 2);
@@ -983,7 +1071,7 @@ class dalNeo4j implements pluggableDB
 
         }
 
-        return(array("JSON" => $jsonStr, "headers" => $aryHeaders));
+        return(array("JSON" => $jsonStr, "headers" => $aryHeaders, "http_code" => $httpCode));
     }
 
     /*
@@ -999,6 +1087,8 @@ class dalNeo4j implements pluggableDB
 
         return $oid;
     }
+
+
 
 }
 
