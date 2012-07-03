@@ -440,7 +440,7 @@ class dalNeo4j implements pluggableDB
      * @param String $query The Lucene (by default) query string.
      */
     private function getNodeByIndexQueryMatch($index, $query) {
-        $uriPart = "index/node/".$index."?".urlencode($query);
+        $uriPart = "index/node/".$index."?".rawurlencode($query);
         $res = $this->doCurlTransaction(null, $uriPart, dalNeo4j::HTTPGET);
         if($res['result'] == 200) {
             $aryRet = array(
@@ -461,7 +461,7 @@ class dalNeo4j implements pluggableDB
      * @param String $value The value for the index/key pair.
      */
     private function getNodeByIndexExactMatch($index, $key, $value) {
-        $uriPart = "index/node/".urlencode($index)."/".urlencode($key)."/".urlencode($value);
+        $uriPart = "index/node/".rawurlencode($index)."/".rawurlencode($key)."/".rawurlencode($value);
         $res = $this->doCurlTransaction(null, $uriPart, dalNeo4j::HTTPGET);
         if($res['result'] == 200) {
             $aryRet = array(
@@ -484,7 +484,7 @@ class dalNeo4j implements pluggableDB
      * @return Mixed Array containing the result and the returned content.
      */
     private function getAllNodeTypedRelationships($nid, $typeQuery) {
-        $uriPart = "node/".$nid."/relationships/all/".urlencode($typeQuery);
+        $uriPart = "node/".$nid."/relationships/all/".rawurlencode($typeQuery);
         $res = $this->doCurlTransaction(null, $uriPart, dalNeo4j::HTTPGET);
         if($res['result'] == 200) {
             $aryRet = array(
@@ -866,7 +866,7 @@ class dalNeo4j implements pluggableDB
      */
     private function makeNeo4jIndex($targetURI, $index, $key, $value) {
 
-        $urlAdd = "index/node/".urlencode($index);
+        $urlAdd = "index/node/".rawurlencode($index);
 
         $aryParams = array(
             "uri" => $targetURI,
