@@ -1057,11 +1057,15 @@ class dalNeo4j implements pluggableDB
                 } else if((substr($part, 0, 4) === "HTTP")) {
                     $httpCodeParts = explode(" ", $part);
                     $httpCode = $httpCodeParts[1];
-                } else if($part == "{" || $part == "<html>") {
+                } else if($part == "{" || $part == "<html>" || $part == "[ {") {
                     $restIsJson = true;
                 } else {
                     $arySplitHeader = explode(":", $part, 2);
-                    $aryHeaders[$arySplitHeader[0]] = $arySplitHeader[1];
+                    if(count($arySplitHeader) == 2) {
+                        $aryHeaders[$arySplitHeader[0]] = $arySplitHeader[1];
+                    } else {
+                        $aryHeaders[$arySplitHeader[0]] = "";
+                    }
                 }
             }
 
