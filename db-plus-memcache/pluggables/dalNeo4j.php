@@ -15,6 +15,11 @@ class dalNeo4j implements pluggableDB
      */
     private $n4jconfig;
 
+    private $lastCuRLRequest;
+
+    private $debug = false;
+    private $log_file = "";
+
     private $aryReqConfig = array(
         "hostname" => "string",
         "protocol" => array('http', 'https'),
@@ -84,7 +89,6 @@ class dalNeo4j implements pluggableDB
      *
      */
     public function setConnectInfo($connInfo){
-        $blnIsGood = true;
         foreach($this->aryReqConfig as $key => $val) {
             if(!array_key_exists($key, $connInfo)) {
                 throw new dalNeo4jException("The configuration item: ".$key." was not supplied.");
@@ -99,6 +103,14 @@ class dalNeo4j implements pluggableDB
         }
 
         $this->n4jconfig = $connInfo;
+
+        if(array_key_exists("debug", $connInfo) && array_key_exists("log_file", $connInfo)) {
+            $this->debug = $connInfo['debug'];
+            $this->log_file = $connInfo['log_file'];
+            $this->sendToLog("Debug Logging Initialized.", array());
+            echo "Debugging...\n";
+            $this->sendToLog("Debug Logging Initialized.", array());
+        }
 
         if($connInfo['do_connection_test']) {
             return $this->testNeo4jConnection();
@@ -440,7 +452,7 @@ class dalNeo4j implements pluggableDB
      * @param String $query The Lucene (by default) query string.
      */
     private function getNodeByIndexQueryMatch($index, $query) {
-        $uriPart = "index/node/".$index."?".urlencode($query);
+        $uriPart = "index/node/".$index."?".rawurlencode($query);
         $res = $this->doCurlTransaction(null, $uriPart, dalNeo4j::HTTPGET);
         if($res['result'] == 200) {
             $aryRet = array(
@@ -461,7 +473,7 @@ class dalNeo4j implements pluggableDB
      * @param String $value The value for the index/key pair.
      */
     private function getNodeByIndexExactMatch($index, $key, $value) {
-        $uriPart = "index/node/".urlencode($index)."/".urlencode($key)."/".urlencode($value);
+        $uriPart = "index/node/".rawurlencode($index)."/".rawurlencode($key)."/".rawurlencode($value);
         $res = $this->doCurlTransaction(null, $uriPart, dalNeo4j::HTTPGET);
         if($res['result'] == 200) {
             $aryRet = array(
@@ -484,7 +496,7 @@ class dalNeo4j implements pluggableDB
      * @return Mixed Array containing the result and the returned content.
      */
     private function getAllNodeTypedRelationships($nid, $typeQuery) {
-        $uriPart = "node/".$nid."/relationships/all/".urlencode($typeQuery);
+        $uriPart = "node/".$nid."/relationships/all/".rawurlencode($typeQuery);
         $res = $this->doCurlTransaction(null, $uriPart, dalNeo4j::HTTPGET);
         if($res['result'] == 200) {
             $aryRet = array(
@@ -866,7 +878,7 @@ class dalNeo4j implements pluggableDB
      */
     private function makeNeo4jIndex($targetURI, $index, $key, $value) {
 
-        $urlAdd = "index/node/".urlencode($index);
+        $urlAdd = "index/node/".rawurlencode($index);
 
         $aryParams = array(
             "uri" => $targetURI,
@@ -950,6 +962,7 @@ class dalNeo4j implements pluggableDB
 
         /* Create the full URL */
         $reqUrl = $this->n4jconfig['protocol']."://".$this->n4jconfig['hostname'].":".$this->n4jconfig['port'].$this->n4jconfig['baseurl'].$urlEnd;
+
         $aryHeaders = Array("Content-Type: application/json", "Accept: application/json");
         $curlOpts = array(
             CURLOPT_URL => $reqUrl,
@@ -966,7 +979,7 @@ class dalNeo4j implements pluggableDB
                 break;
             case dalNeo4j::HTTPGET:
                 $curlOpts[CURLOPT_CUSTOMREQUEST] = dalNeo4j::HTTPGET;
-                $curlOpts[CURLOPT_URL] .= "?".http_build_query($aryVars);
+                if(is_array($aryVars)) $curlOpts[CURLOPT_URL] .= "?".http_build_query($aryVars);
                 $curlOpts[CURLOPT_HTTPHEADER] = $aryHeaders;
                 break;
             case dalNeo4j::HTTPPOST:
@@ -989,23 +1002,38 @@ class dalNeo4j implements pluggableDB
         }
 
 
-        print_r($curlOpts);
-        echo "\n\n";
+        // print_r($curlOpts);
+        // echo "\n\n";
         $ch = curl_init();
         curl_setopt_array($ch, $curlOpts);
+
+        // Save the curl opts in last request in case this fails
+        $this->lastCuRLRequest['curl_opts'] = $curlOpts;
 
         $ret = curl_exec($ch);
 
         $res = curl_getinfo($ch);
+
+        // Save it in last request
+        $this->lastCuRLRequest['curl_info'] = $res;
 
         $decodeReturn = $this->parseHeadersFromJSON($ret);
 
         if($res["http_code"] >= 200 && $res["http_code"] < 300) {
             return array("result" => $res["http_code"], "curl_info" => $res, "response_body" => $decodeReturn['JSON'], "headers" => $decodeReturn['headers']);
         } else {
+            if($this->debug) $this->sendToLog("Failed REST transaction.", $this->lastCuRLRequest);
             return array("result" => $res["http_code"], "response_body" => $decodeReturn['JSON'], "headers" => $decodeReturn['headers']);
         }
 
+    }
+    /*
+     * Sends a mixed associative array to the log as JSON.
+     */
+    private function sendToLog($reason, $aryData) {
+        $json = json_encode($aryData);
+        $logMsg = "DEBUG - ".date('r')." REASON: ".$reason." JSON: ".$json."\n";
+        error_log($logMsg, 3, $this->log_file);
     }
 
     /**
@@ -1014,7 +1042,7 @@ class dalNeo4j implements pluggableDB
      * @param mixed $data
      * @return string
      */
-    public function encodeData($data)
+    private function encodeData($data)
     {
         $encoded = '';
         if (!is_scalar($data)) {
@@ -1057,11 +1085,15 @@ class dalNeo4j implements pluggableDB
                 } else if((substr($part, 0, 4) === "HTTP")) {
                     $httpCodeParts = explode(" ", $part);
                     $httpCode = $httpCodeParts[1];
-                } else if($part == "{" || $part == "<html>") {
+                } else if($part == "{" || $part == "<html>" || $part == "[ {") {
                     $restIsJson = true;
                 } else {
                     $arySplitHeader = explode(":", $part, 2);
-                    $aryHeaders[$arySplitHeader[0]] = $arySplitHeader[1];
+                    if(count($arySplitHeader) == 2) {
+                        $aryHeaders[$arySplitHeader[0]] = $arySplitHeader[1];
+                    } else {
+                        $aryHeaders[$arySplitHeader[0]] = "";
+                    }
                 }
             }
 
