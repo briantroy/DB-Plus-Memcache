@@ -40,6 +40,30 @@ print_r($ret);
 echo "\n\n";
 
 /*
+ * Cypher Query
+ */
+
+
+$strQuery = "start inst=node:nodeType(type = {type}) match inst-[:PRIMARY_STATE]->state, inst-[:HAS_ER_VISITS]->ernum where state.value = {state} and ernum.matter_value <> 'NA' return inst.name, ernum.matter_value, state.value order by inst.name";
+
+$aryQ['query'] = $strQuery;
+$aryQ['params'] = array("type" => "INSTITUTION", "state" => "CA");
+$aryFindNode = array(
+    "getop" => dalNeo4j::NEOGETOPCYPHER,
+    "oid" => null,
+    "index" => null,
+    "query" => $aryQ,
+);
+$mNode = $myDal->plugables['plugNeo4j']->dbGet($aryFindNode);
+
+print_r($mNode);
+$rsltJson = json_decode($mNode['response'], true);
+
+print_r($rsltJson);
+
+exit();
+
+/*
  * Create a node...
  */
 

@@ -371,6 +371,18 @@ class dalNeo4j implements pluggableDB
         }
 
         /*
+         * Get by Cypher Query
+         */
+        if($findData['getop'] == dalNeo4j::NEOGETOPCYPHER) {
+            if(array_key_exists("query", $findData['query']) && array_key_exists("params", $findData['query'])) {
+                $ret = $this->doCypherQuery($findData['query']['query'], $findData['query']['params']);
+                return $ret;
+            } else {
+                throw new dalNeo4jException("The query and parameters (even if parameters are emtpy) are required for a cypher get.");
+            }
+        }
+
+        /*
          * Get node by ID
          */
         if($findData['getop'] == dalNeo4j::NEOGETOPNODE) {
@@ -443,6 +455,22 @@ class dalNeo4j implements pluggableDB
             return $ret;
         }
 
+    }
+
+    private function doCypherQuery($query, $params) {
+        $uriPart = "cypher";
+        $aryC['query'] = $query;
+        $aryC['params'] = $params;
+        $res = $this->doCurlTransaction($aryC, $uriPart, dalNeo4j::HTTPPOST);
+        if($res['result'] == 200) {
+            $aryRet = array(
+                "result" => "success",
+                "response" => $res['response_body'],
+            );
+            return $aryRet;
+        } else {
+            throw new dalNeo4jException("Getting nodes by cypher search failed. OUTPUT: ".$res['response_body']);
+        }
     }
 
     /*
