@@ -56,12 +56,11 @@ $aryFindNode = array(
 );
 $mNode = $myDal->plugables['plugNeo4j']->dbGet($aryFindNode);
 
-print_r($mNode);
 $rsltJson = json_decode($mNode['response'], true);
 
 print_r($rsltJson);
 
-exit();
+echo "\n\n\n";
 
 /*
  * Create a node...
