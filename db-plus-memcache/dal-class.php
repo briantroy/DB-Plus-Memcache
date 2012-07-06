@@ -252,7 +252,7 @@ require_once("dal-conf.php");
             try {
                 $this->internalDBConnect();
             } catch (dalException $e) {
-                sendToLog("dalException connecting to db in DoQuery", "DAL-ERROR");
+                $this->sendToLog("dalException connecting to db in DoQuery", "DAL-ERROR");
                 throw $e;
             }
             $timeStart = microtime(true);
