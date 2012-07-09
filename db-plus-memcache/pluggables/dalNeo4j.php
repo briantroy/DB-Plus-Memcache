@@ -285,7 +285,7 @@ class dalNeo4j implements pluggableDB
                     "response" => $res['response_body'],
                 );
             } else {
-                throw new dalNeo4jException("Deleting node with id: ".$deleteData['oid']." failed. OUTPUT: ".$res['response_body']);
+                throw new dalNeo4jException("Deleting node with id: ".$deleteData['oid']." failed. OUTPUT: ".$res['response_body'], $res['results']);
             }
         }
         /*
@@ -297,7 +297,7 @@ class dalNeo4j implements pluggableDB
             if($res['result'] == 204) {
                 return array("result" => "success");
             } else {
-                throw new dalNeo4jException("Deleting node with id: ".$deleteData['oid']." failed. OUTPUT: ".$res['response_body']);
+                throw new dalNeo4jException("Deleting node with id: ".$deleteData['oid']." failed. OUTPUT: ".$res['response_body'], $res['result']);
             }
         }
         /*
@@ -469,7 +469,7 @@ class dalNeo4j implements pluggableDB
             );
             return $aryRet;
         } else {
-            throw new dalNeo4jException("Getting nodes by cypher search failed. OUTPUT: ".$res['response_body']);
+            throw new dalNeo4jException("Getting nodes by cypher search failed. OUTPUT: ".$res['response_body'], $res['result']);
         }
     }
 
@@ -488,7 +488,7 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting nodes by exact match index search failed. OUTPUT: ".$res['response_body']);
+            throw new dalNeo4jException("Getting nodes by exact match index search failed. OUTPUT: ".$res['response_body'], $res['result']);
         }
         return $aryRet;
     }
@@ -509,7 +509,7 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting nodes by exact match index search failed. OUTPUT: ".$res['response_body']);
+            throw new dalNeo4jException("Getting nodes by exact match index search failed. OUTPUT: ".$res['response_body'], $res['result']);
         }
         return $aryRet;
 
@@ -532,7 +532,7 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting typed relationships for node with id: ".$nid." by ID failed. OUTPUT: ".$res['response_body']);
+            throw new dalNeo4jException("Getting typed relationships for node with id: ".$nid." by ID failed. OUTPUT: ".$res['response_body'], $res['result']);
         }
         return $aryRet;
     }
@@ -553,7 +553,7 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting incoming relationships for node with id: ".$nid." by ID failed. OUTPUT: ".$res['response_body']);
+            throw new dalNeo4jException("Getting incoming relationships for node with id: ".$nid." by ID failed. OUTPUT: ".$res['response_body'], $res['result']);
         }
         return $aryRet;
     }
@@ -574,7 +574,7 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting outgoing relationships for node with id: ".$nid." by ID failed. OUTPUT: ".$res['response_body']);
+            throw new dalNeo4jException("Getting outgoing relationships for node with id: ".$nid." by ID failed. OUTPUT: ".$res['response_body'], $res['result']);
         }
         return $aryRet;
     }
@@ -595,7 +595,7 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting relationships for node with id: ".$nid." by ID failed. OUTPUT: ".$res['response_body']);
+            throw new dalNeo4jException("Getting relationships for node with id: ".$nid." by ID failed. OUTPUT: ".$res['response_body'], $res['result']);
         }
         return $aryRet;
     }
@@ -616,7 +616,7 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting relationship with id: ".$rid." by ID failed. OUTPUT: ".$res['response_body']);
+            throw new dalNeo4jException("Getting relationship with id: ".$rid." by ID failed. OUTPUT: ".$res['response_body'], $res['result']);
         }
         return $aryRet;
 
@@ -639,7 +639,7 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting node with id: ".$nid." by ID failed. OUTPUT: ".$res['response_body']);
+            throw new dalNeo4jException("Getting node with id: ".$nid." by ID failed. OUTPUT: ".$res['response_body'], $res['result']);
         }
         return $aryRet;
     }
@@ -661,7 +661,7 @@ class dalNeo4j implements pluggableDB
                 "result" => "success",
             );
         } else {
-            throw new dalNeo4jException("Property ".$propertyName." of Node with ID: ".$nodeId." could not be deleted. OUTPUT: ".$res['response_body']);
+            throw new dalNeo4jException("Property ".$propertyName." of Node with ID: ".$nodeId." could not be deleted. OUTPUT: ".$res['response_body'], $res['result']);
         }
     }
 
@@ -682,7 +682,7 @@ class dalNeo4j implements pluggableDB
                 "result" => "success",
             );
         } else {
-            throw new dalNeo4jException("Property ".$propertyName." of Relationship with ID: ".$relationshipId." could not be deleted. OUTPUT: ".$res['response_body']);
+            throw new dalNeo4jException("Property ".$propertyName." of Relationship with ID: ".$relationshipId." could not be deleted. OUTPUT: ".$res['response_body'], $res['result']);
         }
     }
 
@@ -708,7 +708,7 @@ class dalNeo4j implements pluggableDB
                 $aryRet[$i]['set_to_value'] = $value;
                 $aryRet[$i]['target_node_id'] = $saveData['oid'];
             } else {
-                throw new dalNeo4jException("Could not set the property: ".$key." for node with id: ".$saveData['oid']);
+                throw new dalNeo4jException("Could not set the property: ".$key." for node with id: ".$saveData['oid'], $res['result']);
             }
             $i = $i + 1;
         }
@@ -738,7 +738,7 @@ class dalNeo4j implements pluggableDB
                 $aryRet[$i]['set_to_value'] = $value;
                 $aryRet[$i]['target_relationship_id'] = $relId;
             } else {
-                throw new dalNeo4jException("Could not set the property: ".$key." for relationship with id: ".$relId);
+                throw new dalNeo4jException("Could not set the property: ".$key." for relationship with id: ".$relId, $res['result']);
             }
             $i = $i + 1;
         }
@@ -768,7 +768,7 @@ class dalNeo4j implements pluggableDB
                 "result" => "success",
             );
         } else {
-            throw new dalNeo4jException("The relationship with ID: ".$saveData['oid']." could not be updated. OUTPUT: ".$res['response_body']);
+            throw new dalNeo4jException("The relationship with ID: ".$saveData['oid']." could not be updated. OUTPUT: ".$res['response_body'], $res['result']);
         }
         return $aryRet;
 
@@ -804,7 +804,7 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Creating relationship for node id: ".$saveData['oid']." failed. OUTPUT: ".$res['response_body']);
+            throw new dalNeo4jException("Creating relationship for node id: ".$saveData['oid']." failed. OUTPUT: ".$res['response_body'], $res['result']);
         }
 
         return $aryRet;
@@ -829,7 +829,7 @@ class dalNeo4j implements pluggableDB
                 "result" => "success",
             );
         } else {
-            throw new dalNeo4jException("Update of node id: ".$saveData['oid']." failed. OUTPUT: ".$res['response_body']);
+            throw new dalNeo4jException("Update of node id: ".$saveData['oid']." failed. OUTPUT: ".$res['response_body'], $res['result']);
         }
 
         return $aryRet;
@@ -861,7 +861,7 @@ class dalNeo4j implements pluggableDB
             // Good Save... get the resource URL
             $uri = trim($res['headers']['Location']);
         } else {
-            throw new dalNeo4jException("Node Creation failed: ".$res['response_body']);
+            throw new dalNeo4jException("Node Creation failed: ".$res['response_body'], $res['result']);
         }
 
         $index_info = array();
@@ -878,7 +878,7 @@ class dalNeo4j implements pluggableDB
                             "value" => $idx['value'],
                         );
                     } else {
-                        throw new dalNeo4jException("Index Creation failed for node: ".$uri." index: ".$idx['index_name']." OUTPUT: ".$resp['response_body']);
+                        throw new dalNeo4jException("Index Creation failed for node: ".$uri." index: ".$idx['index_name']." OUTPUT: ".$resp['response_body'], $resp['result']);
                     }
                 }
             } catch (dalNeo4jException $e) {
@@ -919,8 +919,9 @@ class dalNeo4j implements pluggableDB
         if($ret['result'] == 201) {
             return true;
         } else {
-            throw new dalNeo4jException("Index creation failed: ".var_export($ret, true));
+            throw new dalNeo4jException("Index creation failed: ".var_export($ret, true), $ret['result']);
         }
+
 
     }
 
@@ -1141,7 +1142,7 @@ class dalNeo4j implements pluggableDB
      *
      * @return String The ID extracted from the URI.
      */
-    private function extractIdFromURI($uri) {
+    public function extractIdFromURI($uri) {
         $parts = explode("/", $uri);
         $oid = $parts[(count($parts) - 1)];
 
