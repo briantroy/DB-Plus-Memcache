@@ -939,7 +939,7 @@ class dalNeo4j implements pluggableDB
      * @param $key String The index key
      * @param $value Mixed The index value
      */
-    private function makeNeo4jIndex($targetURI, $index, $key, $value) {
+    public function makeNeo4jIndex($targetURI, $index, $key, $value) {
 
         $urlAdd = "index/node/".rawurlencode($index);
 
