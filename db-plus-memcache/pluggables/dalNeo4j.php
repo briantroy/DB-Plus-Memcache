@@ -40,6 +40,7 @@ class dalNeo4j implements pluggableDB
         "props",
         "what",
         "scope",
+        "indexes"
     );
     private $aryGetMandatory = array(
         "oid",
@@ -55,6 +56,7 @@ class dalNeo4j implements pluggableDB
 
     CONST NEONODE = "node";
     CONST NEORELATIONSHIP = "relationship";
+    CONST NEOINDEX = "index";
 
     CONST NEOOPCREATE = "create";
     CONST NEOOPUPDATE = "update";
@@ -108,7 +110,7 @@ class dalNeo4j implements pluggableDB
             $this->debug = $connInfo['debug'];
             $this->log_file = $connInfo['log_file'];
             $this->sendToLog("Debug Logging Initialized.", array());
-            echo "Debugging...\n";
+            // echo "Debugging...\n";
             $this->sendToLog("Debug Logging Initialized.", array());
         }
 
@@ -257,10 +259,11 @@ class dalNeo4j implements pluggableDB
     public function dbDelete($deleteData){
         /*
          * $deleteData MUST contain
-         * "what" = "relationship" or "node" What object type to act on.
+         * "what" = "relationship", "node" or "index" What object type to act on.
          * "scope" = "property" or "object" Deleting one or more properties OR the object (node/relationship) itself.
          * "oid" = The node/relationship ID
          * "props" = An array (associative) of properties to delete for the node/relationship.
+         * "indexes" = An array (associative) of indexes (and - optionally keys) to remove the node from.
          *
          */
 
@@ -300,6 +303,19 @@ class dalNeo4j implements pluggableDB
                 throw new dalNeo4jException("Deleting node with id: ".$deleteData['oid']." failed. OUTPUT: ".$res['response_body'], $res['result']);
             }
         }
+        /*
+         * Delete this node from an index
+         */
+        if($deleteData['what'] == dalNeo4j::NEOINDEX && $deleteData['scope'] == dalNeo4j::NEOSCOPEPROP) {
+            $uriPart = "index/node";
+            $aryOut = array();
+            foreach($deleteData['indexes'] as $idx) {
+                $res = $this->deleteNodeFromIndex($idx, $deleteData['oid'], $uriPart);
+                $aryOut[] = array("index_removed" => $idx, "response" => $res);
+            }
+            return $aryOut;
+        }
+
         /*
          * Delete a list of node properties.
          */
@@ -457,10 +473,29 @@ class dalNeo4j implements pluggableDB
 
     }
 
+    private function deleteNodeFromIndex($idx, $oid, $uriPart) {
+        if(array_key_exists("index_name", $idx)) {
+            $thisURI = $uriPart."/".$idx['index_name'];
+            if(array_key_exists('key', $idx) && $idx['key'] != "") {
+                $thisURI .= "/".$idx['key'];
+                if(array_key_exists('value', $idx) && $idx['value'] != "") $thisURI .= "/".$idx['value'];
+            }
+            $thisURI .= "/".$oid;
+            $res = $this->doCurlTransaction(null, $thisURI, dalNeo4j::HTTPDELETE);
+            if($res['result'] == 204) {
+                return array("result" => "success");
+            } else {
+                throw new dalNeo4jException("Deleting node with id: ".$deleteData['oid']." from index: ".$idx['index_name']." failed. OUTPUT: ".$res['response_body'], $res['result']);
+            }
+        } else {
+            throw new dalNeo4jException("To delete a node from an index the index_name property is required.");
+        }
+    }
+
     private function doCypherQuery($query, $params) {
         $uriPart = "cypher";
         $aryC['query'] = $query;
-        $aryC['params'] = $params;
+        if($params != null) $aryC['params'] = $params;
         $res = $this->doCurlTransaction($aryC, $uriPart, dalNeo4j::HTTPPOST);
         if($res['result'] == 200) {
             $aryRet = array(
@@ -954,40 +989,6 @@ class dalNeo4j implements pluggableDB
      *
      */
     private function doCurlTransaction($aryVars, $urlEnd, $type = dalNeo4j::HTTPGET, $content_type = dalNeo4j::CONTENTTYPEJSON, $accept_type = dalNeo4j::ACCEPTJSON) {
-
-        /*
-         * Trying via socket.
-         */
-        /*
-        if($type == dalNeo4j::HTTPPUT || $type == dalNeo4j::HTTPPOST || $type == dalNeo4j::HTTPDELETE) {
-            $aryGet = array();
-            $aryPost = $aryVars;
-        } else {
-            $aryGet = $aryVars;
-            $aryPost = array();
-        }
-
-        $res = $this->http_request($type, $this->n4jconfig['hostname'].":7474",
-                        $this->n4jconfig['port'], $this->n4jconfig['baseurl'].$urlEnd,
-                        $aryGet, $aryPost, array(), array("Content-Type" => 'application/json', "Accept" => "application/json"),
-                        10, false, true
-        );
-        if($res === false) echo "Error on stream...\n";
-        if($res === "") echo "Empty response from Neo4j?\n";
-        echo $res."\n\n";
-
-        $decodeReturn = $this->parseHeadersFromJSON($res);
-        //print_r($decodeReturn);
-
-        if($decodeReturn["http_code"] >= 200 && $decodeReturn["http_code"] < 300) {
-            return array("result" => $decodeReturn["http_code"], "curl_info" => array(), "response_body" => $decodeReturn['JSON'], "headers" => $decodeReturn['headers']);
-        } else {
-            return array("result" => $decodeReturn["http_code"], "response_body" => $decodeReturn['JSON'], "headers" => $decodeReturn['headers']);
-        }
-
-        */
-        /* below here off if the above section is not commented out */
-
 
         /* Create the full URL */
         $reqUrl = $this->n4jconfig['protocol']."://".$this->n4jconfig['hostname'].":".$this->n4jconfig['port'].$this->n4jconfig['baseurl'].$urlEnd;
