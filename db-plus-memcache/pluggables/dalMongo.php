@@ -214,9 +214,10 @@ class dalMongo implements pluggableDB {
      * @return Boolean The result of the close operation.
      */
     public function dbDisconnect() {
-        $ret = $this->mdb->close();
+        //$ret = $this->mdb->close();
+        unset($this->mdb);
         $this->mdb = null;
-        return $ret;
+        return true;
     }
 
     /*
