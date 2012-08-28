@@ -227,6 +227,9 @@ class dalMongo implements pluggableDB {
      * collection = The name of the collection on which to query
      * query = array of query search fields as defined at: http://www.php.net/manual/en/mongocollection.find.php
      * fields = array of fields to return as defined at: http://www.php.net/manual/en/mongocollection.find.php
+     * sort = array of fields and sort orders.
+     * limit = integer number of records to return
+     * skip = integer number of records to skip
      *
      * @param $findData Array The information needed to execute (and return) the MongoDB query.
      *
@@ -249,6 +252,9 @@ class dalMongo implements pluggableDB {
         if(!array_key_exists('query', $findData)) throw new dalMongoException("The query array must be specified - empty to return all documents in the collection");
         if(!array_key_exists('fields', $findData)) throw new dalMongoException("The fields array must be specified, if empty all fields will be returned.");
         if(!array_key_exists('return_type', $findData)) throw new dalMongoException("The return_type must be specified, valid values are 'cursor' or 'array'.");
+        if(!array_key_exists('sort', $findData)) $findData['sort'] = null;
+        if(!array_key_exists('limit', $findData)) $findData['limit'] = null;
+        if(!array_key_exists('skip', $findData)) $findData['skip'] = null;
 
         if(count($findData['fields']) == 0) $blnNoFields = true;
 
@@ -258,6 +264,18 @@ class dalMongo implements pluggableDB {
         } else {
             $mCurr = $collection->find($findData['query'], $findData['fields']);
         }
+
+        // print_r(iterator_to_array($mCurr));
+
+        try {
+            if(!is_null($findData['sort'])) $mCurr->sort($findData['sort']);
+            if(!is_null($findData['skip'])) $mCurr->skip($findData['skip']);
+            if(!is_null($findData['limit'])) $mCurr->limit($findData['limit']);
+        } catch(\MongoCursorException $e) {
+            throw new dalMongoException("MongoCursorException: ".$e->getMessage());
+        }
+
+        // print_r(iterator_to_array($mCurr));
 
         if($findData['return_type'] == dalMongo::RETURNCURSOR) {
             return $mCurr;
