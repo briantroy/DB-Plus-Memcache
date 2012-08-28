@@ -7,9 +7,13 @@ Supporting both NoSQL (via pluggable persistance classes) and all major RDBMS (v
 
 This has been extensively tested against MySQL and MongoDB - Results on other DBs may vary.
 
-## What's New In Version 1.2
+## What's New In Version 0.8.7
 
-Version 1.2 of the Data Access Layer brings pluggable peristance classes to the DAL. You can now implement
+Version 0.8.7 brings a new Neo4j pluggable persistance class. There are also various improvements
+to the MongoDB Pluggable class including dbGet support for skip, limit and sort cursor
+operations with cache enablement.
+
+Version 0.8 of the Data Access Layer brings pluggable peristance classes to the DAL. You can now implement
 any persistance solution (Cassandra, Redis, Riak, etc.) directly within the DAL by creating a
 pluggable module (class).
 The repo no contains the dalMonogo class which implements a MongoDB pluggable persistance module.
