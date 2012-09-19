@@ -15,7 +15,16 @@ class dalMongo implements pluggableDB {
 
     private $mdb = null;
 
+    /**
+     * @var
+     */
     private $db;
+
+    /**
+     * @var string Holds the name of the default database supplied when setting connection info.
+     */
+    private $defaultDb = "";
+
 
     const DOINSERT = 'insert';
     const DOUPDATE = 'update';
@@ -104,9 +113,7 @@ class dalMongo implements pluggableDB {
             } else {
                 $this->mdb = new Mongo($connString);
             }
-            // Set the DB
-            $tDb = $this->myConfig['db'];
-            $this->db = $this->mdb->$tDb;
+            
 
         } catch (MongoConnectionException $e) {
             throw new dalMongoException("MongoConnectionException encountered with message: ".$e->getMessage());
@@ -134,6 +141,9 @@ class dalMongo implements pluggableDB {
 
         // Connect if needed
         if(!$this->isConnected()) $this->dbConnect();
+
+        /** Set the DB */
+        $this->setDBToUse($saveData);
 
         if(!array_key_exists('operation', $saveData)) throw new dalMongoException("The operation must be specified, valid operations are insert and update.");
 
@@ -194,6 +204,9 @@ class dalMongo implements pluggableDB {
         // Connect if needed
         if(!$this->isConnected()) $this->dbConnect();
 
+        /** Set the DB */
+        $this->setDBToUse($deleteData);
+
         $collection = $this->getMongoCollection($deleteData['collection']);
 
         try{
@@ -242,6 +255,9 @@ class dalMongo implements pluggableDB {
 
         // Connect if needed
         if(!$this->isConnected()) $this->dbConnect();
+
+        /** Set the DB */
+        $this->setDBToUse($findData);
 
         if(array_key_exists('collection', $findData)) {
             $collection = $this->getMongoCollection($findData['collection']);
@@ -296,9 +312,15 @@ class dalMongo implements pluggableDB {
      *
      * @param
      */
-    public function doMapReduce($mapFunc, $reduceFunc, $inCollection, $outCollection, $finalize = null, $query = null, $outType = dalMongo::OUTTYPEREPLACE) {
+    public function doMapReduce($mapFunc, $reduceFunc, $inCollection, $outCollection, $db = null, $finalize = null, $query = null, $outType = dalMongo::OUTTYPEREPLACE) {
+        /* Set the DB for this operation. */
+        $aryDat = (is_null($db)) ? array() : array('db' => $db);
+
         // Connect if needed
         if(!$this->isConnected()) $this->dbConnect();
+
+        /** Set the DB */
+        $this->setDBToUse($aryDat);
 
         $tMap = new MongoCode($mapFunc);
         $tReduce = new MongoCode($reduceFunc);
@@ -346,6 +368,18 @@ class dalMongo implements pluggableDB {
         } catch (Exception $e){
             throw new dalMongoException($e->getMessage());
         }
+    }
+
+    private function setDBToUse($datIn)
+    {
+        // Unset current db
+        unset($this->db);
+        if(array_key_exists('db', $datIn)) {
+            $dbToUse = $datIn['db'];
+        } else {
+            $dbToUse = $this->defaultDb;
+        }
+        $this->db = $this->mdb->$dbToUse;
     }
 
 
