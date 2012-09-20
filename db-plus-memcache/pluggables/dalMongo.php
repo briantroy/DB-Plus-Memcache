@@ -91,6 +91,8 @@ class dalMongo implements pluggableDB {
         if(!array_key_exists("db", $this->myConfig))
             throw new dalMongoException("Invalid Configuration, db must be specified.");
 
+        $this->defaultDb = $this->myConfig['db'];
+
         if($this->myConfig['useAuth']) {
             // Must have username, password and db
             if(!array_key_exists("username", $this->myConfig))
