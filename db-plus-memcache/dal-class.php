@@ -120,7 +120,9 @@ require_once("dal-conf.php");
                 $thisObj = $this->plugables[$pluggableName];
                 $result = $thisObj->dbGet($findData);
             } catch(Exception $e) {
-                throw new dalException(gettype($e)." Exception Thrown in doPluggableFindWithCache - Message: ".$e->getMessage(), array());
+                $thisClass = get_class($e);
+                $aryDalMsgs = array("pluggable_info" => $e->getPluggableInfo(), "pluggable_message" => $e->getMessage(), "persistence_message" => $e->getPersistenceMessage());
+                throw new dalException($thisClass." Exception Thrown in doPluggableFindWithCache - Message: ".$e->getMessage(), $aryDalMsgs);
             }
 
             $ret = $this->cacheObj($result, md5($strCacheKey), $cacheDurr);
@@ -1015,5 +1017,31 @@ Interface pluggableDB {
      * @param $findData Contains all information needed to get one or many sets of data.
      */
     public function dbGet($findData);
+
+}
+
+/**
+ * Abstract exception class that all pluggable exception classes must extend.
+ *
+ * @author Brian Roy
+ * @date 9/21/2012
+ *
+ */
+abstract class dalPluggableException extends Exception
+{
+    /**
+     * Returns the actual information (raw) returned by the persistence server.
+     *
+     * @return mixed The core information returned from the persistance server
+     */
+    abstract function getPluggableInfo();
+
+    /**
+     * Returns the actual message the persistence server send back. Should be human readable.
+     *
+     * @return mixed The core message (will be passed all the way up) from the persistance server.
+     */
+    abstract public function getPersistenceMessage();
+
 
 }

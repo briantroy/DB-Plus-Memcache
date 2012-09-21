@@ -93,12 +93,12 @@ class dalNeo4j implements pluggableDB
     public function setConnectInfo($connInfo){
         foreach($this->aryReqConfig as $key => $val) {
             if(!array_key_exists($key, $connInfo)) {
-                throw new dalNeo4jException("The configuration item: ".$key." was not supplied.");
+                throw new dalNeo4jException("The configuration item: ".$key." was not supplied.", "", "");
             } else {
                 if(is_array($this->aryReqConfig[$key])) {
                     // contains a list of valid values
                     if(! in_array($connInfo[$key], $this->aryReqConfig[$key])) {
-                        throw new dalNeo4jException("The value: ".$connInfo[$key]." for configuration item: ".$key." is invalid.");
+                        throw new dalNeo4jException("The value: ".$connInfo[$key]." for configuration item: ".$key." is invalid.", "", "");
                     }
                 }
             }
@@ -162,7 +162,7 @@ class dalNeo4j implements pluggableDB
 
         foreach($this->arySaveMandatory as $key => $value) {
             if(!array_key_exists($value, $saveData)) {
-                throw new dalNeo4jException("The required dbSave info: ".$value." was not found.");
+                throw new dalNeo4jException("The required dbSave info: ".$value." was not found.", "", "");
             }
         }
         /*
@@ -269,7 +269,7 @@ class dalNeo4j implements pluggableDB
 
         foreach($this->aryDeleteMandatory as $key => $value) {
             if(!array_key_exists($value, $deleteData)) {
-                throw new dalNeo4jException("The required dbDelete info: ".$value." was not found.");
+                throw new dalNeo4jException("The required dbDelete info: ".$value." was not found.", "", "");
             }
         }
 
@@ -288,7 +288,8 @@ class dalNeo4j implements pluggableDB
                     "response" => $res['response_body'],
                 );
             } else {
-                throw new dalNeo4jException("Deleting node with id: ".$deleteData['oid']." failed. OUTPUT: ".$res['response_body'], $res['results']);
+                $neoMsg = $this->extractNeoMessageFromResponse($res);
+                throw new dalNeo4jException("Deleting node with id: ".$deleteData['oid']." failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
             }
         }
         /*
@@ -300,7 +301,8 @@ class dalNeo4j implements pluggableDB
             if($res['result'] == 204) {
                 return array("result" => "success");
             } else {
-                throw new dalNeo4jException("Deleting node with id: ".$deleteData['oid']." failed. OUTPUT: ".$res['response_body'], $res['result']);
+                $neoMsg = $this->extractNeoMessageFromResponse($res);
+                throw new dalNeo4jException("Deleting node with id: ".$deleteData['oid']." failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
             }
         }
         /*
@@ -325,11 +327,12 @@ class dalNeo4j implements pluggableDB
                     try{
                         $res = $this->deleteNeo4jNodeProperty($deleteData['oid'], $name);
                     } catch (dalNeo4jException $e) {
-                        throw $e;
+                        $neoMsg = $this->extractNeoMessageFromResponse($res);
+                        throw new dalNeo4jException("Deleting property on node with id: ".$deleteData['oid']." failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
                     }
                 }
             } else {
-                throw new dalNeo4jException("Request to delete node properties can not be processed if properties to delete (props) is null.");
+                throw new dalNeo4jException("Request to delete node properties can not be processed if properties to delete (props) is null.", "", "");
             }
         }
 
@@ -342,11 +345,12 @@ class dalNeo4j implements pluggableDB
                     try{
                         $res = $this->deleteNeo4jRelationshipProperty($deleteData['oid'], $name);
                     } catch (dalNeo4jException $e) {
-                        throw $e;
+                        $neoMsg = $this->extractNeoMessageFromResponse($res);
+                        throw new dalNeo4jException("Deleting property on relationship with id: ".$deleteData['oid']." failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
                     }
                 }
             } else {
-                throw new dalNeo4jException("Request to delete node properties can not be processed if properties to delete (props) is null.");
+                throw new dalNeo4jException("Request to delete node properties can not be processed if properties to delete (props) is null.", "", "");
             }
         }
     }
@@ -382,7 +386,7 @@ class dalNeo4j implements pluggableDB
          */
         foreach($this->aryGetMandatory as $key => $value) {
             if(!array_key_exists($value, $findData)) {
-                throw new dalNeo4jException("The required dbGet info: ".$value." was not found.");
+                throw new dalNeo4jException("The required dbGet info: ".$value." was not found.", "", "");
             }
         }
 
@@ -394,7 +398,7 @@ class dalNeo4j implements pluggableDB
                 $ret = $this->doCypherQuery($findData['query']['query'], $findData['query']['params']);
                 return $ret;
             } else {
-                throw new dalNeo4jException("The query and parameters (even if parameters are emtpy) are required for a cypher get.");
+                throw new dalNeo4jException("The query and parameters (even if parameters are empty) are required for a cypher get.", "", "");
             }
         }
 
@@ -450,9 +454,9 @@ class dalNeo4j implements pluggableDB
          * Index exact match
          */
         if($findData['getop'] == dalNeo4j::NEOGETOPINDEXFIND) {
-            if(is_null($findData['index'])) throw new dalNeo4jException("Index name must be specified for an index exact match search.");
+            if(is_null($findData['index'])) throw new dalNeo4jException("Index name must be specified for an index exact match search.", "", "");
             if(!array_key_exists('key', $findData['query']) && !array_key_exists('value', $findData['query'])) {
-                throw new dalNeo4jException("For an index exact match get the query (array) must contain both key and value indexes with values.");
+                throw new dalNeo4jException("For an index exact match get the query (array) must contain both key and value indexes with values.", "", "");
             }
 
             $ret = $this->getNodeByIndexExactMatch($findData['index'], $findData['query']['key'], $findData['query']['value']);
@@ -464,10 +468,10 @@ class dalNeo4j implements pluggableDB
          */
 
         if($findData['getop'] == dalNeo4j::NEOGETOPINDEXQUERY) {
-            if(is_null($findData['index'])) throw new dalNeo4jException("Index name must be specified for an index query search.");
-            if(is_null($findData['query'])) throw new dalNeo4jException("Query must be specified for an index query search.");
-
+            if(is_null($findData['index'])) throw new dalNeo4jException("Index name must be specified for an index query search.", "", "");
+            if(is_null($findData['query'])) throw new dalNeo4jException("Query must be specified for an index query search.", "", "");
             $ret = $this->getNodeByIndexQueryMatch($findData['index'], $findData['query']);
+
             return $ret;
         }
 
@@ -485,10 +489,11 @@ class dalNeo4j implements pluggableDB
             if($res['result'] == 204) {
                 return array("result" => "success");
             } else {
-                throw new dalNeo4jException("Deleting node with id: ".$deleteData['oid']." from index: ".$idx['index_name']." failed. OUTPUT: ".$res['response_body'], $res['result']);
+                $neoMsg = $this->extractNeoMessageFromResponse($res);
+                throw new dalNeo4jException("Deleting node with id: ".$oid." from index: ".$idx['index_name']." failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
             }
         } else {
-            throw new dalNeo4jException("To delete a node from an index the index_name property is required.");
+            throw new dalNeo4jException("To delete a node from an index the index_name property is required.", "", "");
         }
     }
 
@@ -504,7 +509,8 @@ class dalNeo4j implements pluggableDB
             );
             return $aryRet;
         } else {
-            throw new dalNeo4jException("Getting nodes by cypher search failed. OUTPUT: ".$res['response_body'], $res['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($res);
+            throw new dalNeo4jException("Getting nodes by cypher search failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
         }
     }
 
@@ -523,7 +529,8 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting nodes by exact match index search failed. OUTPUT: ".$res['response_body'], $res['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($res);
+            throw new dalNeo4jException("Getting nodes by query match index search failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
         }
         return $aryRet;
     }
@@ -544,7 +551,8 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting nodes by exact match index search failed. OUTPUT: ".$res['response_body'], $res['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($res);
+            throw new dalNeo4jException("Getting nodes by exact match index search failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
         }
         return $aryRet;
 
@@ -567,7 +575,8 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting typed relationships for node with id: ".$nid." by ID failed. OUTPUT: ".$res['response_body'], $res['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($res);
+            throw new dalNeo4jException("Getting typed relationships for node with id: ".$nid." by ID failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
         }
         return $aryRet;
     }
@@ -588,7 +597,8 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting incoming relationships for node with id: ".$nid." by ID failed. OUTPUT: ".$res['response_body'], $res['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($res);
+            throw new dalNeo4jException("Getting incoming relationships for node with id: ".$nid." by ID failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
         }
         return $aryRet;
     }
@@ -609,7 +619,8 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting outgoing relationships for node with id: ".$nid." by ID failed. OUTPUT: ".$res['response_body'], $res['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($res);
+            throw new dalNeo4jException("Getting outgoing relationships for node with id: ".$nid." by ID failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
         }
         return $aryRet;
     }
@@ -630,7 +641,8 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting relationships for node with id: ".$nid." by ID failed. OUTPUT: ".$res['response_body'], $res['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($res);
+            throw new dalNeo4jException("Getting relationships for node with id: ".$nid." by ID failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
         }
         return $aryRet;
     }
@@ -651,7 +663,8 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting relationship with id: ".$rid." by ID failed. OUTPUT: ".$res['response_body'], $res['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($res);
+            throw new dalNeo4jException("Getting relationship with id: ".$rid." by ID failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
         }
         return $aryRet;
 
@@ -674,7 +687,8 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Getting node with id: ".$nid." by ID failed. OUTPUT: ".$res['response_body'], $res['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($res);
+            throw new dalNeo4jException("Getting node with id: ".$nid." by ID failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
         }
         return $aryRet;
     }
@@ -696,7 +710,8 @@ class dalNeo4j implements pluggableDB
                 "result" => "success",
             );
         } else {
-            throw new dalNeo4jException("Property ".$propertyName." of Node with ID: ".$nodeId." could not be deleted. OUTPUT: ".$res['response_body'], $res['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($res);
+            throw new dalNeo4jException("Property ".$propertyName." of Node with ID: ".$nodeId." could not be deleted. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
         }
     }
 
@@ -717,7 +732,8 @@ class dalNeo4j implements pluggableDB
                 "result" => "success",
             );
         } else {
-            throw new dalNeo4jException("Property ".$propertyName." of Relationship with ID: ".$relationshipId." could not be deleted. OUTPUT: ".$res['response_body'], $res['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($res);
+            throw new dalNeo4jException("Property ".$propertyName." of Relationship with ID: ".$relationshipId." could not be deleted. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
         }
     }
 
@@ -743,7 +759,9 @@ class dalNeo4j implements pluggableDB
                 $aryRet[$i]['set_to_value'] = $value;
                 $aryRet[$i]['target_node_id'] = $saveData['oid'];
             } else {
-                throw new dalNeo4jException("Could not set the property: ".$key." for node with id: ".$saveData['oid'], $res['result']);
+
+                $neoMsg = $this->extractNeoMessageFromResponse($res);
+                throw new dalNeo4jException("Could not set the property: ".$key." for node with id: ".$saveData['oid']." Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
             }
             $i = $i + 1;
         }
@@ -773,7 +791,8 @@ class dalNeo4j implements pluggableDB
                 $aryRet[$i]['set_to_value'] = $value;
                 $aryRet[$i]['target_relationship_id'] = $relId;
             } else {
-                throw new dalNeo4jException("Could not set the property: ".$key." for relationship with id: ".$relId, $res['result']);
+                $neoMsg = $this->extractNeoMessageFromResponse($res);
+                throw new dalNeo4jException("Could not set the property: ".$key." for relationship with id: ".$relId." Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
             }
             $i = $i + 1;
         }
@@ -787,7 +806,7 @@ class dalNeo4j implements pluggableDB
      * @param Mixed $saveData The data supplied to dbSave.
      */
     private function updateNeo4jRelationship($saveData) {
-        if(is_null($saveData['relationship_data'])) throw new dalNeo4jException("relationship_data must be specified to update a Relationship.");
+        if(is_null($saveData['relationship_data'])) throw new dalNeo4jException("relationship_data must be specified to update a Relationship.", "", "");
 
         $uriPart = "relationship".$saveData['oid']."/properties";
         if(is_null($saveData['props'])) {
@@ -803,7 +822,8 @@ class dalNeo4j implements pluggableDB
                 "result" => "success",
             );
         } else {
-            throw new dalNeo4jException("The relationship with ID: ".$saveData['oid']." could not be updated. OUTPUT: ".$res['response_body'], $res['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($res);
+            throw new dalNeo4jException("The relationship with ID: ".$saveData['oid']." could not be updated. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
         }
         return $aryRet;
 
@@ -839,7 +859,8 @@ class dalNeo4j implements pluggableDB
                 "response" => $res['response_body'],
             );
         } else {
-            throw new dalNeo4jException("Creating relationship for node id: ".$saveData['oid']." failed. OUTPUT: ".$res['response_body'], $res['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($res);
+            throw new dalNeo4jException("Creating relationship for node id: ".$saveData['oid']." failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
         }
 
         return $aryRet;
@@ -864,7 +885,8 @@ class dalNeo4j implements pluggableDB
                 "result" => "success",
             );
         } else {
-            throw new dalNeo4jException("Update of node id: ".$saveData['oid']." failed. OUTPUT: ".$res['response_body'], $res['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($res);
+            throw new dalNeo4jException("Update of node id: ".$saveData['oid']." failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
         }
 
         return $aryRet;
@@ -896,7 +918,8 @@ class dalNeo4j implements pluggableDB
             // Good Save... get the resource URL
             $uri = trim($res['headers']['Location']);
         } else {
-            throw new dalNeo4jException("Node Creation failed: ".$res['response_body'], $res['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($res);
+            throw new dalNeo4jException("Node Creation failed. Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
         }
 
         $index_info = array();
@@ -913,7 +936,9 @@ class dalNeo4j implements pluggableDB
                             "value" => $idx['value'],
                         );
                     } else {
-                        throw new dalNeo4jException("Index Creation failed for node: ".$uri." index: ".$idx['index_name']." OUTPUT: ".$resp['response_body'], $resp['result']);
+
+                        $neoMsg = $this->extractNeoMessageFromResponse($res);
+                        throw new dalNeo4jException("Index Creation failed for node: ".$uri." index: ".$idx['index_name']." Neo4j Error: ".$neoMsg, $res['response_body'], $neoMsg);
                     }
                 }
             } catch (dalNeo4jException $e) {
@@ -954,7 +979,8 @@ class dalNeo4j implements pluggableDB
         if($ret['result'] == 201) {
             return true;
         } else {
-            throw new dalNeo4jException("Index creation failed: ".var_export($ret, true), $ret['result']);
+            $neoMsg = $this->extractNeoMessageFromResponse($ret);
+            throw new dalNeo4jException("Index Creation failed: Neo4j Error: ".$neoMsg, $ret['response_body'], $neoMsg);
         }
 
 
@@ -1028,7 +1054,7 @@ class dalNeo4j implements pluggableDB
                 $curlOpts[CURLOPT_HTTPHEADER] = $aryHeaders;
                 break;
             default:
-                throw new dalNeo4jException("Invalid HTTP Request Type: ".$type);
+                throw new dalNeo4jException("Invalid HTTP Request Type: ".$type, "", "");
         }
 
 
@@ -1136,6 +1162,19 @@ class dalNeo4j implements pluggableDB
         return(array("JSON" => $jsonStr, "headers" => $aryHeaders, "http_code" => $httpCode));
     }
 
+    /**
+     * Returns the message from Neo4j in the event of a failure/exception.
+     * @param $resp The response from Neo4j.
+     * @return mixed The response message or false if not found.
+     */
+    private function extractNeoMessageFromResponse($resp) {
+        $outObj = json_decode($resp['response_body']);
+        if(property_exists($outObj, "message"))
+            return $outObj->message;
+
+        return false;
+    }
+
     /*
      * Extracts the ID (node or relationship) from the URI.
      *
@@ -1154,4 +1193,24 @@ class dalNeo4j implements pluggableDB
 
 }
 
-class dalNeo4jException extends Exception{};
+class dalNeo4jException extends dalPluggableException{
+
+    private $neoStackTrace;
+    private $neoMessage;
+
+    public function __construct($msg, $neoResp, $neoMessage, $code = 0, $e = null) {
+        $this->neoStackTrace = $neoResp;
+        $this->neoMessage = $neoMessage;
+
+        parent::__construct($msg, $code, $e);
+    }
+
+    public function getPluggableInfo() {
+        return $this->neoStackTrace;
+    }
+
+    public function getPersistenceMessage() {
+        return $this->neoMessage;
+    }
+
+};

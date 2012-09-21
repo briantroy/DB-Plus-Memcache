@@ -49,10 +49,10 @@ class dalMongo implements pluggableDB {
             $connKey = $connData['connectTo'];
             $config = $connData['configs'];
             if(!array_key_exists($connKey, $config)) {
-                throw new dalMongoException("Invalid Configuration, the connection: ".$connKey." is not defined.");
+                throw new dalMongoException("Invalid Configuration, the connection: ".$connKey." is not defined.", "", "");
             }
         } else {
-            throw new dalMongoException("Invalid Connection Information supplied in setConnectionInfo.");
+            throw new dalMongoException("Invalid Connection Information supplied in setConnectionInfo.", "", "");
         }
 
         $this->myConfig = $config[$connKey];
@@ -73,14 +73,14 @@ class dalMongo implements pluggableDB {
     public function dbConnect() {
         // Make sure we have configuration
         if(is_null($this->myConfig))
-            throw new dalMongoException("No connection information has been supplied. Call setConnectInfo first.");
+            throw new dalMongoException("No connection information has been supplied. Call setConnectInfo first.", "", "");
         // Set up the connection
 
         if(!array_key_exists("useAuth", $this->myConfig))
-            throw new dalMongoException("Invalid Configuration, useAuth must be specified (true or false).");
+            throw new dalMongoException("Invalid Configuration, useAuth must be specified (true or false).", "", "");
 
         if(!array_key_exists("host", $this->myConfig))
-            throw new dalMongoException("Invalid Configuration, host must be specified.");
+            throw new dalMongoException("Invalid Configuration, host must be specified.", "", "");
 
         if(!array_key_exists("port", $this->myConfig)) {
             $tPort = dalMongo::DEFAULT_PORT;
@@ -89,16 +89,16 @@ class dalMongo implements pluggableDB {
         }
 
         if(!array_key_exists("db", $this->myConfig))
-            throw new dalMongoException("Invalid Configuration, db must be specified.");
+            throw new dalMongoException("Invalid Configuration, db must be specified.", "", "");
 
         $this->defaultDb = $this->myConfig['db'];
 
         if($this->myConfig['useAuth']) {
             // Must have username, password and db
             if(!array_key_exists("username", $this->myConfig))
-                throw new dalMongoException("Invalid Configuration, username must be specified when useAuth is true.");
+                throw new dalMongoException("Invalid Configuration, username must be specified when useAuth is true.", "", "");
             if(!array_key_exists("password", $this->myConfig))
-                throw new dalMongoException("Invalid Configuration, password must be specified when useAuth is true.");
+                throw new dalMongoException("Invalid Configuration, password must be specified when useAuth is true.", "", "");
 
             // Good config... build the connection string
             $connString = "mongodb://".$this->myConfig['username'].":".$this->myConfig['password']."@".
@@ -118,7 +118,7 @@ class dalMongo implements pluggableDB {
             
 
         } catch (MongoConnectionException $e) {
-            throw new dalMongoException("MongoConnectionException encountered with message: ".$e->getMessage());
+            throw new dalMongoException("MongoConnectionException encountered with message: ".$e->getMessage(), var_export($e, true), $e->getMessage());
         }
 
         return true;
@@ -147,26 +147,26 @@ class dalMongo implements pluggableDB {
         /** Set the DB */
         $this->setDBToUse($saveData);
 
-        if(!array_key_exists('operation', $saveData)) throw new dalMongoException("The operation must be specified, valid operations are insert and update.");
+        if(!array_key_exists('operation', $saveData)) throw new dalMongoException("The operation must be specified, valid operations are insert and update.", "", "");
 
         $op = $saveData['operation'];
         if(!($op == dalMongo::DOINSERT || $op == dalMongo::DOUPDATE))
-            throw new dalMongoException("The supplied operation type: ".$op." is not supported.\n");
+            throw new dalMongoException("The supplied operation type: ".$op." is not supported.\n", "", "");
 
-        if(!array_key_exists('document', $saveData)) throw new dalMongoException("The document array is required.");
-        if(!array_key_exists('opts', $saveData)) throw new dalMongoException("The opts array is required.");
-        if(!array_key_exists('collection', $saveData)) throw new dalMongoException("The collection name is required.");
+        if(!array_key_exists('document', $saveData)) throw new dalMongoException("The document array is required.", "", "");
+        if(!array_key_exists('opts', $saveData)) throw new dalMongoException("The opts array is required.", "", "");
+        if(!array_key_exists('collection', $saveData)) throw new dalMongoException("The collection name is required.", "", "");
 
         $collection = $this->getMongoCollection($saveData['collection']);
 
         if($op == dalMongo::DOUPDATE) {
-            if(!array_key_exists('criteria',$saveData)) throw new dalMongoException("The criteria array is required for updates.");
+            if(!array_key_exists('criteria',$saveData)) throw new dalMongoException("The criteria array is required for updates.", "", "");
             try {
                 $result = $collection->update($saveData['criteria'], $saveData['document'], $saveData['opts']);
             } catch(MongoCursorException $ec) {
-                throw new dalMongoException("MongoCursorException: ".$ec->getMessage());
+                throw new dalMongoException("MongoCursorException: ".$ec->getMessage(), var_export($ec, true), $ec->getMessage());
             } catch (MongoCursorTimeoutException $ect) {
-                throw new dalMongoException("MongoCursorTimeoutException: ".$ect->getMessage());
+                throw new dalMongoException("MongoCursorTimeoutException: ".$ect->getMessage(), var_export($ect, true), $ect->getMessage());
             }
 
             return $result;
@@ -176,9 +176,9 @@ class dalMongo implements pluggableDB {
             try {
                 $result = $collection->insert($saveData['document'], $saveData['opts']);
             } catch(MongoCursorException $ec) {
-                throw new dalMongoException("MongoCursorException: ".$ec->getMessage());
+                throw new dalMongoException("MongoCursorException: ".$ec->getMessage(), var_export($ec, true), $ec->getMessage());
             } catch (MongoCursorTimeoutException $ect) {
-                throw new dalMongoException("MongoCursorTimeoutException: ".$ect->getMessage());
+                throw new dalMongoException("MongoCursorTimeoutException: ".$ect->getMessage(), var_export($ect, true), $ect->getMessage());
             }
             return $result;
         }
@@ -199,9 +199,9 @@ class dalMongo implements pluggableDB {
      */
     public function dbDelete($deleteData) {
 
-        if(!array_key_exists('opts', $deleteData)) throw new dalMongoException("The opts array is required.");
-        if(!array_key_exists('criteria', $deleteData)) throw new dalMongoException("The criteria array is required.");
-        if(!array_key_exists('collection', $deleteData)) throw new dalMongoException("The collection name is required.");
+        if(!array_key_exists('opts', $deleteData)) throw new dalMongoException("The opts array is required.", "" , "");
+        if(!array_key_exists('criteria', $deleteData)) throw new dalMongoException("The criteria array is required.", "", "");
+        if(!array_key_exists('collection', $deleteData)) throw new dalMongoException("The collection name is required.", "", "");
 
         // Connect if needed
         if(!$this->isConnected()) $this->dbConnect();
@@ -214,9 +214,9 @@ class dalMongo implements pluggableDB {
         try{
             $result = $collection->remove($deleteData['criteria'], $deleteData['opts']);
         } catch(MongoCursorException $ec) {
-            throw new dalMongoException("MongoCursorException: ".$ec->getMessage());
+            throw new dalMongoException("MongoCursorException: ".$ec->getMessage(), var_export($ec, true), $ec->getMessage());
         } catch (MongoCursorTimeoutException $ect) {
-            throw new dalMongoException("MongoCursorTimeoutException: ".$ect->getMessage());
+            throw new dalMongoException("MongoCursorTimeoutException: ".$ect->getMessage(), var_export($ect, true), $ect->getMessage());
         }
         return $result;
     }
@@ -264,12 +264,12 @@ class dalMongo implements pluggableDB {
         if(array_key_exists('collection', $findData)) {
             $collection = $this->getMongoCollection($findData['collection']);
         } else {
-            throw new dalMongoException("The collection name must be supplied.");
+            throw new dalMongoException("The collection name must be supplied.", "", "");
         }
 
-        if(!array_key_exists('query', $findData)) throw new dalMongoException("The query array must be specified - empty to return all documents in the collection");
-        if(!array_key_exists('fields', $findData)) throw new dalMongoException("The fields array must be specified, if empty all fields will be returned.");
-        if(!array_key_exists('return_type', $findData)) throw new dalMongoException("The return_type must be specified, valid values are 'cursor' or 'array'.");
+        if(!array_key_exists('query', $findData)) throw new dalMongoException("The query array must be specified - empty to return all documents in the collection", "", "");
+        if(!array_key_exists('fields', $findData)) throw new dalMongoException("The fields array must be specified, if empty all fields will be returned.", "", "");
+        if(!array_key_exists('return_type', $findData)) throw new dalMongoException("The return_type must be specified, valid values are 'cursor' or 'array'.", "", "");
         if(!array_key_exists('sort', $findData)) $findData['sort'] = null;
         if(!array_key_exists('limit', $findData)) $findData['limit'] = null;
         if(!array_key_exists('skip', $findData)) $findData['skip'] = null;
@@ -290,7 +290,7 @@ class dalMongo implements pluggableDB {
             if(!is_null($findData['skip'])) $mCurr->skip($findData['skip']);
             if(!is_null($findData['limit'])) $mCurr->limit($findData['limit']);
         } catch(\MongoCursorException $e) {
-            throw new dalMongoException("MongoCursorException: ".$e->getMessage());
+            throw new dalMongoException("MongoCursorException: ".$e->getMessage(), var_export($e, true), $e->getMessage());
         }
 
         // print_r(iterator_to_array($mCurr));
@@ -300,7 +300,7 @@ class dalMongo implements pluggableDB {
         } else if($findData['return_type'] == dalMongo::RETURNARRAY) {
             return iterator_to_array($mCurr);
         } else {
-            throw new dalMongoException("The return_type specified (".$findData['return_type']." is not supported. Valid types are 'cursor' and 'array'.");
+            throw new dalMongoException("The return_type specified (".$findData['return_type']." is not supported. Valid types are 'cursor' and 'array'.", "", "");
         }
 
     }
@@ -368,7 +368,7 @@ class dalMongo implements pluggableDB {
             $collection = $this->db->$collectionName;
             return $collection;
         } catch (Exception $e){
-            throw new dalMongoException($e->getMessage());
+            throw new dalMongoException($e->getMessage(), var_export($e, true), $e->getMessage());
         }
     }
 
@@ -387,4 +387,23 @@ class dalMongo implements pluggableDB {
 
 }
 
-class dalMongoException extends Exception{};
+class dalMongoException extends dalPluggableException{
+
+    private $mdbStackTrace;
+    private $mdbMessage;
+
+    public function __construct($msg, $mdbResp, $mdbMessage, $code = 0, $e = null) {
+        $this->mdbStackTrace = $mdbResp;
+        $this->mdbMessage = $mdbMessage;
+
+        parent::__construct($msg, $code, $e);
+    }
+
+    public function getPluggableInfo() {
+        return $this->mdbStackTrace;
+    }
+
+    public function getPersistenceMessage() {
+        return $this->mdbMessage;
+    }
+};
