@@ -1168,6 +1168,7 @@ class dalNeo4j implements pluggableDB
      * @return mixed The response message or false if not found.
      */
     private function extractNeoMessageFromResponse($resp) {
+        if($resp['result'] == 0) return "Neo4j is down.";
         $outObj = json_decode($resp['response_body']);
         if(property_exists($outObj, "message"))
             return $outObj->message;
