@@ -69,10 +69,14 @@ require_once("dal-conf.php");
         const PREPARE_UPDATE = 3;
         const PREPARE_DELETE = 4;
 
-        public function __construct() {
+        public function __construct($aryMemcPool = false) {
             if($this->debug) $this->sendToLog("In Constructor...", "DEBUG");
             $this->aryDSN = dalConfig::$aryDalDSNPool;
-            $this->aryMemC = dalConfig::$aryDalMemC;
+            if(!$aryMemcPool) {
+                $this->aryMemC = dalConfig::$aryDalMemC;
+            } else {
+                $this->aryMemC = $aryMemcPool;
+            }
             $this->aryPlugable = dalConfig::$aryPluggables;
             $this->loadPlugables();
         }
@@ -352,8 +356,11 @@ require_once("dal-conf.php");
          *
          */
 
-        public function cacheObj($aryObj, $id, $durr) {
-
+        public function cacheObj($aryObj, $id, $durr, $memCPool = false) {
+            if($memCPool) {
+                $defMemc = $this->aryMemC;
+                $this->aryMemC = $memCPool;
+            }
             if(dalConfig::$DALUSEMEMC) {
                 if(!$this->memc) {
                     // Connect to Memcache server(s)
@@ -369,14 +376,19 @@ require_once("dal-conf.php");
                 if($rsltC) {
                     // Result found in MemCache... replace it
                     $this->memc->replace($id, $aryObj, $durr);
-                    return true;
+                    $ret = true;
                 } else {
                     $this->memc->add($id, $aryObj, $durr);
-                    return true;
+                    $ret = true;
                 }
             } else {
-                return false;
+                $ret = false;
             }
+            if($memCPool) {
+                $this->memc = false;
+                $this->aryMemC = $defMemc;
+            }
+            return $ret;
         }
 
         /*
@@ -386,7 +398,11 @@ require_once("dal-conf.php");
          * @return Boolean The result of the unset.
          *
          */
-        public function cacheUnset($id) {
+        public function cacheUnset($id, $memCPool = false) {
+            if($memCPool) {
+                $defMemc = $this->aryMemC;
+                $this->aryMemC = $memCPool;
+            }
 
             if(dalConfig::$DALUSEMEMC) {
                 if(!$this->memc) {
@@ -399,10 +415,15 @@ require_once("dal-conf.php");
 
                 // See if the object is cached
                 $rsltC = $this->memc->delete($id);
-                return $rsltC;
+                $ret = $rsltC;
             } else {
-                return false;
+                $ret = false;
             }
+            if($memCPool) {
+                $this->memc = false;
+                $this->aryMemC = $defMemc;
+            }
+            return $ret;
         }
 
         /*
@@ -412,7 +433,12 @@ require_once("dal-conf.php");
          * @param $id string The key/id of the object in memcache
          * @param $retType int CONST value of return type - default Associative array.
          */
-        public function getObj($id, $retType = 1) {
+        public function getObj($id, $retType = 1, $memCPool = false) {
+
+            if($memCPool) {
+                $defMemc = $this->aryMemC;
+                $this->aryMemC = $memCPool;
+            }
 
             if(dalConfig::$DALUSEMEMC) {
                 if(!$this->memc) {
@@ -425,10 +451,16 @@ require_once("dal-conf.php");
 
                 // See if the object is cached
                 $rsltC = $this->memc->get($id);
-                return $this->getReturnValue($rsltC, $retType);
+                $ret =  $this->getReturnValue($rsltC, $retType);
             } else {
-                return false;
+                $ret = false;
             }
+
+            if($memCPool) {
+                $this->memc = false;
+                $this->aryMemC = $defMemc;
+            }
+            return $ret;
         }
 		
 		/* The QueryInCache function evaluates Memcache to determine if a specific result set
