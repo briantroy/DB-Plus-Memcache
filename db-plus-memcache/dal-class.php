@@ -360,6 +360,7 @@ require_once("dal-conf.php");
             if($memCPool) {
                 $defMemc = $this->aryMemC;
                 $this->aryMemC = $memCPool;
+                $this->memc = false;
             }
             if(dalConfig::$DALUSEMEMC) {
                 if(!$this->memc) {
@@ -402,6 +403,7 @@ require_once("dal-conf.php");
             if($memCPool) {
                 $defMemc = $this->aryMemC;
                 $this->aryMemC = $memCPool;
+                $this->memc = false;
             }
 
             if(dalConfig::$DALUSEMEMC) {
@@ -438,6 +440,7 @@ require_once("dal-conf.php");
             if($memCPool) {
                 $defMemc = $this->aryMemC;
                 $this->aryMemC = $memCPool;
+                $this->memc = false;
             }
 
             if(dalConfig::$DALUSEMEMC) {
