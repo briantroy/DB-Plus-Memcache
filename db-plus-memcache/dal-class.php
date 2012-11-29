@@ -54,6 +54,8 @@ require_once("dal-conf.php");
 
         private $whichConn;
 
+        private $customDBConn;
+
         private $transactionInProgress = false;
 
         public $plugables; // contains pluggable class objects.
@@ -188,7 +190,7 @@ require_once("dal-conf.php");
          * the result we need is in cache. Actual connection is done in
          * the private internalDBConnect method.
          *
-         * @param $db string The name of the DB to connect to.
+         * @param $db mixed The name of the DB to connect to OR an array with the db connection configuration.
          * @throws dalException
          */
 		public function dbConnect($db = "primary") {
@@ -198,8 +200,14 @@ require_once("dal-conf.php");
                 return array("result" => "200");
 
             } else {
-                $aryRslt = array("result" => "400", "error" => array("That database is not in the dal_config file."));
-                throw new dalException("No Such Database", $aryRslt, 400);
+                if (is_array($db)) {
+                    // Custom config from calling app
+                    $this->customDBConn = $db;
+                    $this->whichConn = null;
+                } else {
+                    $aryRslt = array("result" => "400", "error" => array("That database is not in the dal_config file."));
+                    throw new dalException("No Such Database", $aryRslt, 400);
+                }
             }
 		}
 
@@ -207,15 +215,22 @@ require_once("dal-conf.php");
          * Actually connect to the DB as needed internally.
          */
         private function internalDBConnect() {
-            $db = $this->whichConn;
+
+            if (is_null($this->whichConn)) {
+                $db = 'custom';
+                $aryDBs[$db] = $this->customDBConn;
+            } else {
+                $db = $this->whichConn;
+                $aryDBs = $this->aryDSN;
+            }
             if($this->dbLink) return array("result" => "200");
-            if (array_key_exists($db, $this->aryDSN)) {
+            if (array_key_exists($db, $aryDBs)) {
                 $options = array(
-                    PDO::ATTR_PERSISTENT => $this->aryDSN[$db]['persistent'],
+                    PDO::ATTR_PERSISTENT => $aryDBs[$db]['persistent'],
                     PDO::ATTR_ERRMODE    => PDO::ERRMODE_EXCEPTION
                 );
                 try {
-                        $this->dbLink = new PDO($this->aryDSN[$db]['dsn'], $this->aryDSN[$db]['dbuser'], $this->aryDSN[$db]['dbpwd'], $options);
+                        $this->dbLink = new PDO($aryDBs[$db]['dsn'], $aryDBs[$db]['dbuser'], $aryDBs[$db]['dbpwd'], $options);
                         $rsltArray['result'] = "200";
                         return $rsltArray;
                 } catch (PDOException $e) {
