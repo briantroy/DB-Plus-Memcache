@@ -194,7 +194,7 @@ require_once("dal-conf.php");
          * @throws dalException
          */
 		public function dbConnect($db = "primary") {
-            if (array_key_exists($db, $this->aryDSN)) {
+            if (!is_array($db) && array_key_exists($db, $this->aryDSN)) {
 
                 $this->whichConn = $db;
                 return array("result" => "200");
