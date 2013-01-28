@@ -986,6 +986,35 @@ class dalNeo4j implements pluggableDB
 
     }
 
+    /**
+     * Create a new Neo4j full text index.
+     *
+     * @param string $indexName     The name of the full text index to be created.
+     * @return bool     True on success.
+     * @throws dalNeo4jException
+     */
+    public function makeNeo4jFullTextIndex($indexName)
+    {
+        $urlAdd = "index/node";
+
+        $aryParams = array(
+            "name" => $indexName,
+            "config" => array(
+                "type" => "fulltext",
+                "provider" => "lucene"
+            )
+        );
+
+        $ret = $this->doCurlTransaction($aryParams, $urlAdd, dalNeo4j::HTTPPOST);
+
+        if($ret['result'] == 201) {
+            return true;
+        } else {
+            $neoMsg = $this->extractNeoMessageFromResponse($ret);
+            throw new dalNeo4jException("FullText Index Creation failed: Neo4j Error: ".$neoMsg, $ret['response_body'], $neoMsg);
+        }
+    }
+
     /*
      * This method will hit the Neo4j root to ensure we can talk correctly.
      *
