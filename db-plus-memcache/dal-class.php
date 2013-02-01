@@ -60,6 +60,8 @@ require_once("dal-conf.php");
 
         public $plugables; // contains pluggable class objects.
 
+        private $isUnitTest;
+
         // Return Format Types
         const RETURN_ASSOC = 1;
         const RETURN_JSON = 2;
@@ -71,8 +73,9 @@ require_once("dal-conf.php");
         const PREPARE_UPDATE = 3;
         const PREPARE_DELETE = 4;
 
-        public function __construct($aryMemcPool = false) {
+        public function __construct($aryMemcPool = false, $uTest = false) {
             if($this->debug) $this->sendToLog("In Constructor...", "DEBUG");
+            $this->isUnitTest = $uTest;
             $this->aryDSN = dalConfig::$aryDalDSNPool;
             if(!$aryMemcPool) {
                 $this->aryMemC = dalConfig::$aryDalMemC;
@@ -991,7 +994,7 @@ class dalException extends Exception
         $this->dbMessages = $aryMessages;        
         if ($this->debug) {
             $einfo    = var_export($aryMessages, true);
-            $trace   = "Trace \n" . var_export(self::getTrace(), true);
+            $trace   = ($this->isUnitTest) ? "Trace Disabled for Unit test." : "Trace \n" . var_export(self::getTrace(), true);
             $tmessage = "EXCEPTION: ".date('r')." in dal - ".' Code:' . $code . ' Message: ' . $message . "\nInfo: " . $einfo . "\n" . $trace."\n\n\n";       
             error_log($tmessage, 3, dalConfig::$DALEXCEPTIONLOG);
         }
