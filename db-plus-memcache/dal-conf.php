@@ -31,8 +31,8 @@ class dalConfig {
      * You can always point these to /dev/null to make them silent - not reccomended.
      */
 
-	public static $DALLOG = "/Users/brian/Development/logs/dallog.log";
-    public static $DALEXCEPTIONLOG = "/Users/brian/Development/logs/dal_exceptions.log";
+	public static $DALLOG = "/tmp/dallog.log";
+    public static $DALEXCEPTIONLOG = "/tmp/dal_exceptions.log";
 
 	// Configuraiton for DB Connections
 	// We are using PDO NOT database specific drivers. Please see the PHP PDO manual for the

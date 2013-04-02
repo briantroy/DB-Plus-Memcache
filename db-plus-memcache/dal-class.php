@@ -988,9 +988,12 @@ class dalException extends Exception
 
     private $debug = true;
     public $dbMessages;
+    private $isUnitTest = true;
 
     public function __construct($message, $aryMessages, $code = 0)
     {
+
+
         $this->dbMessages = $aryMessages;        
         if ($this->debug) {
             $einfo    = var_export($aryMessages, true);

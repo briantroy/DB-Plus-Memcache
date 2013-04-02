@@ -254,7 +254,6 @@ class dalMongo implements pluggableDB {
     public function dbGet($findData) {
 
         $blnNoFields = false;
-
         // Connect if needed
         if(!$this->isConnected()) $this->dbConnect();
 
@@ -283,7 +282,6 @@ class dalMongo implements pluggableDB {
             $mCurr = $collection->find($findData['query'], $findData['fields']);
         }
 
-        // print_r(iterator_to_array($mCurr));
 
         try {
             if(!is_null($findData['sort'])) $mCurr->sort($findData['sort']);
@@ -293,7 +291,6 @@ class dalMongo implements pluggableDB {
             throw new dalMongoException("MongoCursorException: ".$e->getMessage(), var_export($e, true), $e->getMessage());
         }
 
-        // print_r(iterator_to_array($mCurr));
 
         if($findData['return_type'] == dalMongo::RETURNCURSOR) {
             return $mCurr;
