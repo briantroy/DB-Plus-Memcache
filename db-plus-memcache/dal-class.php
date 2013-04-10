@@ -609,7 +609,7 @@ require_once("dal-conf.php");
          *
          */
         private function cleanupAssoc($rslt) {
-            if($rslt && array_key_exists("rows", $rslt)) {
+            if($rslt && is_array($rslt) && array_key_exists("rows", $rslt)) {
                 for($i=0; $i < count($rslt['rows']); ++$i) {
                     foreach($rslt['rows'][$i] as $key => $val) {
                             // Remove numeric indexed column.
